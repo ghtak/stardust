@@ -1,3 +1,5 @@
+use std::path::Path;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LoggingFileConfig {
     pub directory: String,
@@ -11,8 +13,15 @@ pub struct LoggingConfig {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct DatabaseConfig {
+    pub url: String,
+    pub pool_size: u32,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Config {
     pub logging: LoggingConfig,
+    pub database: DatabaseConfig,
 }
 
 impl Config {
@@ -27,23 +36,31 @@ impl Config {
             .try_deserialize::<Config>()
             .map_err(|e| crate::Error::ParseError(e.into()))
     }
+
+    pub fn test_config() -> Self {
+        let path = Path::new(&crate::utils::manifest_dir().unwrap())
+            .join("..")
+            .join("testenv")
+            .join("config.test.toml");
+        let config = Config::from_file(path.to_str().unwrap()).unwrap();
+        config
+    }
 }
 
 #[cfg(test)]
 mod tests {
 
+    use std::path::Path;
+
     use super::*;
 
     #[test]
     fn test_config() {
-        let config = Config::from_file(
-            format!(
-                "{}/assets/config.example.toml",
-                crate::utils::manifest_dir().unwrap()
-            )
-            .as_str(),
-        )
-        .unwrap();
+        let path = Path::new(&crate::utils::manifest_dir().unwrap())
+            .join("..")
+            .join("testenv")
+            .join("config.test.toml");
+        let config = Config::from_file(path.to_str().unwrap()).unwrap();
         println!("{:?}", config);
     }
 }

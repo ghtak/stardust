@@ -1,0 +1,15 @@
+services:
+  stardust_db:
+    image: 'postgres:18-alpine'
+    restart: always
+    environment:
+      POSTGRES_DB: stardust
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: passwd
+    ports:
+      - '15432:5432'
+    volumes:
+      - stardust-db:/var/lib/postgresql/data
+
+volumes:
+  stardust-db:

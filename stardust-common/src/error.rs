@@ -13,6 +13,9 @@ pub enum Error {
 
     #[error("Parse error: {0}")]
     ParseError(anyhow::Error),
+
+    #[error("Database error: {0}")]
+    DatabaseError(anyhow::Error)
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
