@@ -1,0 +1,4 @@
+[workspace]
+members = ["stardust-common"]
+
+resolver = "3"

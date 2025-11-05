@@ -1,0 +1,35 @@
+use std::borrow::Cow;
+
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("Invalid parameter: {0}")]
+    InvalidParameter(Cow<'static, str>),
+
+    #[error("Internal error: {0}")]
+    InternalError(#[from] anyhow::Error),
+
+    #[error("Load error: {0}")]
+    LoadError(anyhow::Error),
+
+    #[error("Parse error: {0}")]
+    ParseError(anyhow::Error),
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_cow_borrowed() {
+        let error = Error::InvalidParameter("foo".into());
+        //let borrowed = matches!(error, Error::InvalidParameter(Cow::Borrowed(_)));
+        let borrowed = match error {
+            Error::InvalidParameter(Cow::Borrowed(_)) => true,
+            _ => false,
+        };
+        assert!(borrowed)
+    }
+}
