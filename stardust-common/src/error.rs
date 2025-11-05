@@ -8,6 +8,18 @@ pub enum Error {
     #[error("Internal error: {0}")]
     InternalError(#[from] anyhow::Error),
 
+    #[error("Not found")]
+    NotFound,
+
+    #[error("Timeout")]
+    Timeout,
+
+    #[error("Already exists")]
+    AlreadyExists,
+
+    #[error("Io Error {0}")]
+    IoError(#[from] std::io::Error),
+
     #[error("Load error: {0}")]
     LoadError(anyhow::Error),
 
@@ -15,7 +27,7 @@ pub enum Error {
     ParseError(anyhow::Error),
 
     #[error("Database error: {0}")]
-    DatabaseError(anyhow::Error)
+    DatabaseError(anyhow::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
