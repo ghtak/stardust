@@ -1,37 +1,108 @@
 use std::sync::OnceLock;
+use std::vec;
 
-use crate::config::LoggingConfig;
+use crate::config::{LoggingConfig, LoggingFormat};
+use tracing::Subscriber;
 use tracing_appender::{non_blocking::WorkerGuard, rolling::daily};
 use tracing_subscriber::fmt;
+use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt};
 
 static LOGGING_INIT: OnceLock<Vec<WorkerGuard>> = OnceLock::new();
 
+fn init_layer<S>(
+    layred: S,
+    format: &LoggingFormat,
+    writer: tracing_appender::non_blocking::NonBlocking,
+) where
+    S: Subscriber + for<'a> LookupSpan<'a> + Sync + Send + 'static,
+{
+    match format {
+        LoggingFormat::Full => {
+            layred.with(fmt::layer().with_writer(writer)).init()
+        }
+        LoggingFormat::Compact => {
+            layred.with(fmt::layer().with_writer(writer).compact()).init()
+        }
+        LoggingFormat::Pretty => {
+            layred.with(fmt::layer().with_writer(writer).pretty()).init()
+        }
+        LoggingFormat::Json => {
+            layred.with(fmt::layer().with_writer(writer).json()).init()
+        }
+    }
+}
+
+fn init_layers<S>(
+    layered: S,
+    format: &LoggingFormat,
+    writer: tracing_appender::non_blocking::NonBlocking,
+    format1: &LoggingFormat,
+    writer1: tracing_appender::non_blocking::NonBlocking,
+) where
+    S: Subscriber + for<'a> LookupSpan<'a> + Sync + Send + 'static,
+{
+    match format {
+        LoggingFormat::Full => init_layer(
+            layered.with(fmt::layer().with_writer(writer)),
+            format1,
+            writer1,
+        ),
+        LoggingFormat::Compact => init_layer(
+            layered.with(fmt::layer().with_writer(writer).compact()),
+            format1,
+            writer1,
+        ),
+        LoggingFormat::Pretty => init_layer(
+            layered.with(fmt::layer().with_writer(writer).pretty()),
+            format1,
+            writer1,
+        ),
+        LoggingFormat::Json => init_layer(
+            layered.with(fmt::layer().with_writer(writer).json()),
+            format1,
+            writer1,
+        ),
+    }
+}
+
 pub fn init(logging_config: &LoggingConfig) {
     LOGGING_INIT.get_or_init(|| {
-        let filter =
-            EnvFilter::try_from_default_env() // RUST_LOG 환경 변수 확인
-                .unwrap_or_else(|_| {
-                    EnvFilter::new(logging_config.filter.as_str())
-                }); // 없으면 설정 파일 값 사용
-        if let Some(file_config) = &logging_config.file {
-            let (nb, wg) = tracing_appender::non_blocking(daily(
-                file_config.directory.as_str(),
-                file_config.filename.as_str(),
-            ));
-            tracing_subscriber::registry()
-                .with(filter)
-                .with(fmt::layer())
-                .with(fmt::layer().with_writer(nb).json())
-                .init();
-            vec![wg]
-        } else {
-            tracing_subscriber::registry()
-                .with(filter)
-                .with(fmt::layer().json())
-                .init();
-            vec![]
+        let layered = tracing_subscriber::registry().with(
+            // RUST_LOG 환경 변수 확인
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                EnvFilter::new(logging_config.filter.as_str())
+            }),
+        );
+        let (console, console_guard) =
+            tracing_appender::non_blocking::NonBlockingBuilder::default()
+                .buffered_lines_limit(256_000)
+                .lossy(true) // drop if buffer full
+                .finish(std::io::stdout());
+
+        match logging_config.file {
+            None => {
+                init_layer(layered, &logging_config.format, console);
+                vec![console_guard]
+            }
+            Some(ref file_config) => {
+                let (file, file_guard) =
+                    tracing_appender::non_blocking::NonBlockingBuilder::default()
+                        .buffered_lines_limit(256_000)
+                        .lossy(true) // drop if buffer full
+                        .finish(daily(
+                            file_config.directory.as_str(),
+                            file_config.filename.as_str()
+                        ));
+
+                init_layers(
+                    layered,
+                    &logging_config.format, console,
+                    &file_config.format, file,
+                );
+                vec![console_guard, file_guard]
+            }
         }
     });
 }
@@ -48,6 +119,7 @@ mod tests {
     fn default_config() -> LoggingConfig {
         LoggingConfig {
             filter: "debug".into(),
+            format: crate::config::LoggingFormat::Full,
             file: None,
         }
     }

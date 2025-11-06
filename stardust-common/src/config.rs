@@ -1,13 +1,24 @@
 use std::path::Path;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum LoggingFormat {
+    Json,
+    Pretty,
+    Full,
+    Compact,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LoggingFileConfig {
+    pub format: LoggingFormat,
     pub directory: String,
     pub filename: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LoggingConfig {
+    pub format: LoggingFormat,
     pub filter: String,
     pub file: Option<LoggingFileConfig>,
 }
@@ -50,17 +61,11 @@ impl Config {
 #[cfg(test)]
 mod tests {
 
-    use std::path::Path;
-
     use super::*;
 
     #[test]
     fn test_config() {
-        let path = Path::new(&crate::utils::manifest_dir().unwrap())
-            .join("..")
-            .join("testenv")
-            .join("config.test.toml");
-        let config = Config::from_file(path.to_str().unwrap()).unwrap();
+        let config = Config::test_config();
         println!("{:?}", config);
     }
 }

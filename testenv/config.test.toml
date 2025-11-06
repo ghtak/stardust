@@ -3,10 +3,12 @@
 # EnvFilter 문자열 포맷을 따릅니다: 
 # <crate_name>=<level>,<another_crate>=<level>
 filter = "debug"
+format = "compact"
 
 [logging.file]
 directory = "logs"
 filename = "app"
+format = "json"
 
 [database]
 url = "postgres://user:passwd@localhost:15432/stardust"
