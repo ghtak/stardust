@@ -1,0 +1,11 @@
+[package]
+name = "stardust-inbound"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.8.6", features = ["multipart"] }
+tokio = { version = "1.48.0", features = ["full"] }
+stardust-common = { path = "../stardust-common" }
+serde = "1.0.228"
+tower = "0.5.2"

@@ -1,6 +1,13 @@
+[server]
+host = "0.0.0.0"
+port = 5299
+
+[server.http]
+static_dir = "static"
+
 
 [logging]
-# EnvFilter 문자열 포맷을 따릅니다: 
+# EnvFilter 문자열 포맷을 따릅니다:
 # <crate_name>=<level>,<another_crate>=<level>
 filter = "debug"
 format = "compact"

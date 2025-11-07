@@ -1,6 +1,18 @@
 use std::path::Path;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct HttpConfig {
+    pub static_dir: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ServerConfig {
+    pub host: String,
+    pub port: u16,
+    pub http: Option<HttpConfig>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LoggingFormat {
     Json,
@@ -31,6 +43,7 @@ pub struct DatabaseConfig {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Config {
+    pub server: ServerConfig,
     pub logging: LoggingConfig,
     pub database: DatabaseConfig,
 }

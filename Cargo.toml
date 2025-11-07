@@ -1,4 +1,4 @@
 [workspace]
-members = ["stardust-common", "stardust-db"]
+members = ["stardust-common", "stardust-db", "stardust-inbound", "stardust-sample"]
 
 resolver = "3"
