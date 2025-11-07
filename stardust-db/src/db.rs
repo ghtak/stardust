@@ -1,14 +1,14 @@
-use crate::context::{DBContext, DBDriver};
+use crate::handle::{Handle, DefaultDriver};
 
 pub struct Database {
-    pool: sqlx::Pool<DBDriver>,
+    pool: sqlx::Pool<DefaultDriver>,
 }
 
 impl Database {
     pub async fn open(
         config: &stardust_common::config::DatabaseConfig,
     ) -> stardust_common::Result<Self> {
-        let pool = sqlx::pool::PoolOptions::<DBDriver>::new()
+        let pool = sqlx::pool::PoolOptions::<DefaultDriver>::new()
             .max_connections(config.pool_size)
             .connect(&config.url)
             .await
@@ -16,13 +16,13 @@ impl Database {
         Ok(Self { pool })
     }
 
-    pub fn pool(&self) -> DBContext<'_> {
-        DBContext::Pool(self.pool.clone())
+    pub fn pool(&self) -> Handle<'_> {
+        Handle::Pool(self.pool.clone())
     }
 
-    pub async fn transaction(&self) -> stardust_common::Result<DBContext<'_>> {
+    pub async fn transaction(&self) -> stardust_common::Result<Handle<'_>> {
         let tx = self.pool.begin().await.map_err(crate::error::map_err)?;
-        Ok(DBContext::Transaction(tx))
+        Ok(Handle::Transaction(tx))
     }
 }
 

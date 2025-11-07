@@ -1,41 +1,41 @@
 use futures_core::{future::BoxFuture, stream::BoxStream};
 
-pub type DBDriver = sqlx::Postgres;
-//pub type DBDriver = sqlx::Sqlite;
+pub type DefaultDriver = sqlx::Postgres;
+//pub type DefaultDriver = sqlx::Sqlite;
 
 #[derive(Debug)]
-pub enum DBContext<'c> {
-    Pool(sqlx::Pool<DBDriver>),
-    Transaction(sqlx::Transaction<'c, DBDriver>),
+pub enum Handle<'c> {
+    Pool(sqlx::Pool<DefaultDriver>),
+    Transaction(sqlx::Transaction<'c, DefaultDriver>),
 }
 
 #[derive(Debug)]
-pub struct DBExecutor<'h, 'c> {
-    pub handle: &'h mut DBContext<'c>,
+pub struct Executor<'h, 'c> {
+    pub handle: &'h mut Handle<'c>,
 }
 
-impl<'c> DBContext<'c> {
-    pub fn executor(&mut self) -> DBExecutor<'_, 'c> {
-        DBExecutor { handle: self }
+impl<'c> Handle<'c> {
+    pub fn executor(&mut self) -> Executor<'_, 'c> {
+        Executor { handle: self }
     }
 
     pub async fn commit(self) -> Result<(), sqlx::Error> {
         match self {
-            DBContext::Transaction(tx) => tx.commit().await,
+            Handle::Transaction(tx) => tx.commit().await,
             _ => Ok(()),
         }
     }
 
     pub async fn rollback(self) -> Result<(), sqlx::Error> {
         match self {
-            DBContext::Transaction(tx) => tx.rollback().await,
+            Handle::Transaction(tx) => tx.rollback().await,
             _ => Ok(()),
         }
     }
 }
 
-impl<'h, 'c> sqlx::Executor<'h> for DBExecutor<'h, 'c> {
-    type Database = DBDriver;
+impl<'h, 'c> sqlx::Executor<'h> for Executor<'h, 'c> {
+    type Database = DefaultDriver;
 
     fn fetch_many<'e, 'q: 'e, E>(
         self,
@@ -55,8 +55,8 @@ impl<'h, 'c> sqlx::Executor<'h> for DBExecutor<'h, 'c> {
         E: 'q + sqlx::Execute<'q, Self::Database>,
     {
         match self.handle {
-            DBContext::Pool(pool) => pool.fetch_many(query),
-            DBContext::Transaction(tx) => tx.fetch_many(query),
+            Handle::Pool(pool) => pool.fetch_many(query),
+            Handle::Transaction(tx) => tx.fetch_many(query),
         }
     }
 
@@ -72,8 +72,8 @@ impl<'h, 'c> sqlx::Executor<'h> for DBExecutor<'h, 'c> {
         E: 'q + sqlx::Execute<'q, Self::Database>,
     {
         match self.handle {
-            DBContext::Pool(pool) => pool.fetch_optional(query),
-            DBContext::Transaction(tx) => tx.fetch_optional(query),
+            Handle::Pool(pool) => pool.fetch_optional(query),
+            Handle::Transaction(tx) => tx.fetch_optional(query),
         }
     }
 
@@ -89,8 +89,8 @@ impl<'h, 'c> sqlx::Executor<'h> for DBExecutor<'h, 'c> {
         'h: 'e,
     {
         match self.handle {
-            DBContext::Pool(pool) => pool.prepare_with(sql, parameters),
-            DBContext::Transaction(tx) => tx.prepare_with(sql, parameters),
+            Handle::Pool(pool) => pool.prepare_with(sql, parameters),
+            Handle::Transaction(tx) => tx.prepare_with(sql, parameters),
         }
     }
 
@@ -102,8 +102,8 @@ impl<'h, 'c> sqlx::Executor<'h> for DBExecutor<'h, 'c> {
         'h: 'e,
     {
         match self.handle {
-            DBContext::Pool(pool) => pool.describe(sql),
-            DBContext::Transaction(tx) => tx.describe(sql),
+            Handle::Pool(pool) => pool.describe(sql),
+            Handle::Transaction(tx) => tx.describe(sql),
         }
     }
 }
@@ -116,7 +116,7 @@ mod tests {
     use super::*;
 
     async fn accept_handle(
-        handle: &mut DBContext<'_>,
+        handle: &mut Handle<'_>,
     ) -> Result<i32, sqlx::Error> {
         let row: (i32,) =
             sqlx::query_as("SELECT 1").fetch_one(handle.executor()).await?;
@@ -125,9 +125,9 @@ mod tests {
         Ok(row.0 + row2.0)
     }
 
-    async fn db_connect() -> Result<sqlx::Pool<DBDriver>, sqlx::Error> {
+    async fn db_connect() -> Result<sqlx::Pool<DefaultDriver>, sqlx::Error> {
         let config = stardust_common::config::Config::test_config();
-        let pool = sqlx::pool::PoolOptions::<DBDriver>::new()
+        let pool = sqlx::pool::PoolOptions::<DefaultDriver>::new()
             .max_connections(1)
             .connect(&config.database.url)
             .await?;
@@ -138,13 +138,13 @@ mod tests {
     async fn test_handle() {
         let pool = db_connect().await.unwrap();
 
-        let mut ctx = DBContext::Pool(pool.clone());
+        let mut ctx = Handle::Pool(pool.clone());
         let result = accept_handle(&mut ctx).await.unwrap();
         assert_eq!(result, 3);
         ctx.rollback().await.unwrap();
 
         let tx = pool.begin().await.unwrap();
-        let mut ctx = DBContext::Transaction(tx);
+        let mut ctx = Handle::Transaction(tx);
         let result = accept_handle(&mut ctx).await.unwrap();
         assert_eq!(result, 3);
         ctx.commit().await.unwrap();
@@ -154,7 +154,7 @@ mod tests {
     trait Selector {
         async fn select(
             &self,
-            handle: &mut DBContext<'_>,
+            handle: &mut Handle<'_>,
         ) -> Result<i32, sqlx::Error>;
     }
 
@@ -164,7 +164,7 @@ mod tests {
     impl Selector for SelectorImpl {
         async fn select(
             &self,
-            handle: &mut DBContext<'_>,
+            handle: &mut Handle<'_>,
         ) -> Result<i32, sqlx::Error> {
             let row: (i32,) =
                 sqlx::query_as("SELECT 1").fetch_one(handle.executor()).await?;
@@ -180,13 +180,13 @@ mod tests {
 
         let selector: Arc<dyn Selector> = Arc::new(SelectorImpl);
 
-        let mut ctx = DBContext::Pool(pool.clone());
+        let mut ctx = Handle::Pool(pool.clone());
         let result = selector.select(&mut ctx).await.unwrap();
         assert_eq!(result, 3);
         ctx.rollback().await.unwrap();
 
         let tx = pool.begin().await.unwrap();
-        let mut ctx = DBContext::Transaction(tx);
+        let mut ctx = Handle::Transaction(tx);
         let result = selector.select(&mut ctx).await.unwrap();
         assert_eq!(result, 3);
         ctx.commit().await.unwrap();
