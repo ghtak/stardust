@@ -12,7 +12,7 @@ impl Database {
             .max_connections(config.pool_size)
             .connect(&config.url)
             .await
-            .map_err(crate::error::map_err)?;
+            .map_err(crate::into_error)?;
         Ok(Self { pool })
     }
 
@@ -21,7 +21,7 @@ impl Database {
     }
 
     pub async fn transaction(&self) -> stardust_common::Result<Handle<'_>> {
-        let tx = self.pool.begin().await.map_err(crate::error::map_err)?;
+        let tx = self.pool.begin().await.map_err(crate::into_error)?;
         Ok(Handle::Transaction(tx))
     }
 }

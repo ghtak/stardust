@@ -19,8 +19,7 @@ async fn path_handler(Path(name, _): Path<i32, error::ApiError>) -> String {
     format!("Hello, {}!", name)
 }
 
-#[tokio::main]
-async fn main() {
+pub async fn run_http() {
     let config = stardust_common::config::Config::test_config();
     println!("{:?}", config);
     stardust_inbound::http::run(
@@ -28,8 +27,17 @@ async fn main() {
         axum::Router::new()
             .route("/", get(|| async { "Stardust Root" }))
             .route("/json", post(json_handler))
-            .route("/path/{name}", get(path_handler))
+            .route("/path/{name}", get(path_handler)),
     )
     .await
     .unwrap();
+}
+
+#[tokio::main]
+async fn main() {
+    let config = stardust_common::config::Config::test_config();
+    stardust_common::logging::init(&config.logging);
+    let database = stardust_db::Database::open(&config.database).await.unwrap();
+    stardust_core::migration::migrate(database).await.unwrap();
+    //run_http().await;
 }

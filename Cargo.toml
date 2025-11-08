@@ -4,7 +4,7 @@ members = [
     "stardust-db",
     "stardust-inbound",
     "stardust-app",
-    "stardust-user",
+    "stardust-user", "stardust-core",
 ]
 
 resolver = "3"

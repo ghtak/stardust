@@ -1,4 +1,4 @@
-pub fn map_err(err: sqlx::Error) -> stardust_common::Error {
+pub fn into_error(err: sqlx::Error) -> stardust_common::Error {
     match err {
         sqlx::Error::RowNotFound => stardust_common::Error::NotFound,
         sqlx::Error::PoolTimedOut => stardust_common::Error::Timeout,
