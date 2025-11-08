@@ -69,7 +69,7 @@ pub mod migration_repo {
             sqlx::QueryBuilder::new("SELECT * FROM stardust_migration WHERE ")
                 .push("name = ")
                 .push_bind(name)
-                .push("ORDER BY version DESC LIMIT 1")
+                .push(" ORDER BY version DESC LIMIT 1")
                 .build_query_as::<MigrationModel>()
                 .fetch_optional(handle.executor())
                 .await

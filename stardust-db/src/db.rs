@@ -1,5 +1,6 @@
 use crate::handle::{Handle, DefaultDriver};
 
+#[derive(Debug,Clone)]
 pub struct Database {
     pool: sqlx::Pool<DefaultDriver>,
 }

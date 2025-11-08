@@ -21,3 +21,42 @@ pub struct UserAccountModel {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
+
+pub async fn create_table(
+    handle: &mut stardust_db::Handle<'_>,
+) -> stardust_common::Result<()> {
+    sqlx::query(
+        r#"
+            create table if not exists stardust_user (
+                id serial primary key,
+                username varchar(255) not null,
+                email varchar(255) not null,
+                role varchar(255) not null,
+                status varchar(255) not null,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        "#,
+    )
+    .execute(handle.executor())
+    .await
+    .map_err(stardust_db::into_error)?;
+
+    sqlx::query(
+        r#"
+            create table if not exists stardust_user_account (
+                uid varchar(255) primary key,
+                user_id integer not null,
+                account_type varchar(255) not null,
+                password_hash varchar(255) not null,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        "#,
+    )
+    .execute(handle.executor())
+    .await
+    .map_err(stardust_db::into_error)?;
+
+    Ok(())
+}

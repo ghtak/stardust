@@ -19,16 +19,20 @@ impl<'c> Handle<'c> {
         Executor { handle: self }
     }
 
-    pub async fn commit(self) -> Result<(), sqlx::Error> {
+    pub async fn commit(self) -> Result<(), stardust_common::Error> {
         match self {
-            Handle::Transaction(tx) => tx.commit().await,
+            Handle::Transaction(tx) => {
+                tx.commit().await.map_err(crate::into_error)
+            }
             _ => Ok(()),
         }
     }
 
-    pub async fn rollback(self) -> Result<(), sqlx::Error> {
+    pub async fn rollback(self) -> Result<(), stardust_common::Error> {
         match self {
-            Handle::Transaction(tx) => tx.rollback().await,
+            Handle::Transaction(tx) => {
+                tx.rollback().await.map_err(crate::into_error)
+            }
             _ => Ok(()),
         }
     }

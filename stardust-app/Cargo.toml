@@ -8,6 +8,7 @@ stardust-common = { path = "../stardust-common" }
 stardust-db = { path = "../stardust-db" }
 stardust-core = { path = "../stardust-core" }
 stardust-inbound = { path = "../stardust-inbound" }
+stardust-user = { path = "../stardust-user" }
 anyhow = "1.0.100"
 axum = "0.8.6"
 serde = { version = "1.0.228", features = ["derive"] }
