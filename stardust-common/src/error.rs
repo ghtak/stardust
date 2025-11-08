@@ -47,4 +47,10 @@ mod tests {
         };
         assert!(borrowed)
     }
+
+    #[test]
+    fn test_anyhow(){
+        let err = anyhow::anyhow!("Invalid AccountType: {}", "params");
+        println!("{}", err.to_string());
+    }
 }

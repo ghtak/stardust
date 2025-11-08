@@ -259,6 +259,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -2029,6 +2030,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
+name = "stardust-app"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "serde",
+ "stardust-common",
+ "stardust-db",
+ "stardust-inbound",
+ "thiserror 2.0.17",
+ "tokio",
+]
+
+[[package]]
 name = "stardust-common"
 version = "0.1.0"
 dependencies = [
@@ -2072,16 +2087,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "stardust-sample"
+name = "stardust-user"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "axum",
+ "chrono",
  "serde",
+ "sqlx",
  "stardust-common",
  "stardust-db",
- "stardust-inbound",
- "thiserror 2.0.17",
  "tokio",
 ]
 
