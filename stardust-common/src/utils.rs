@@ -27,8 +27,15 @@ pub fn current_exe_dir() -> crate::Result<String> {
 }
 
 pub fn generate_uid() -> String {
-    uuid::Uuid::new_v4().as_simple().to_string()
+    format!("{}", uuid::Uuid::new_v4().as_simple())
 }
+
+pub fn generate_uid_short() -> String {
+    let uuid_val = uuid::Uuid::new_v4().as_u128();
+    let short_val = (uuid_val >> 96) as u32;
+    format!("{:08x}", short_val)
+}
+
 
 pub fn contains<'a, C: ?Sized, T: 'a, U: ?Sized>(
     container: &'a C,
@@ -65,5 +72,11 @@ mod tests {
         let vec = vec!["a".to_string(), "b".to_string()];
         assert!(contains(&vec, "a"));
         assert!(!contains(&vec, "f"));
+    }
+
+    #[test]
+    fn test_generate_uid(){
+        println!("{}", generate_uid());
+        println!("{}", generate_uid_short());
     }
 }

@@ -66,7 +66,8 @@ impl Config {
             .join("..")
             .join("testenv")
             .join("config.test.toml");
-        let config = Config::from_file(path.to_str().unwrap()).unwrap();
+        let mut config = Config::from_file(path.to_str().unwrap()).unwrap();
+        config.logging.file = None;
         config
     }
 }
