@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use axum::{extract::State, routing::get};
 
+use crate::service::UserService;
+
 pub trait UserServiceProvider: Sync + Send {
     type UserService: UserService;
 
     fn user_service(&self) -> Arc<Self::UserService>;
 }
-
-use crate::service::UserService;
 
 async fn hello<T>(State(container): State<Arc<T>>) -> String
 where
