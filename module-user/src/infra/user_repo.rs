@@ -12,7 +12,6 @@ pub struct UserModel {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
-
 pub struct UserAccountModel {
     pub uid: String,
     pub user_id: i64,

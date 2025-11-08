@@ -5,3 +5,4 @@ pub mod repo;
 pub mod service;
 pub mod infra;
 pub mod inbound;
+pub mod internal;
