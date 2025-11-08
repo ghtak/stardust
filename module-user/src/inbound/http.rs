@@ -2,22 +2,24 @@ use std::sync::Arc;
 
 use axum::{extract::State, routing::get};
 
-pub trait UserContainer: Sync + Send {
-    fn user_service(&self) -> Arc<impl UserService>;
+pub trait UserServiceProvider: Sync + Send {
+    type UserService: UserService;
+
+    fn user_service(&self) -> Arc<Self::UserService>;
 }
 
 use crate::service::UserService;
 
 async fn hello<T>(State(container): State<Arc<T>>) -> String
 where
-    T: UserContainer,
+    T: UserServiceProvider,
 {
     container.user_service().hello().await
 }
 
 pub fn routes<T>(t: Arc<T>) -> axum::Router
 where
-    T: UserContainer + 'static,
+    T: UserServiceProvider + 'static,
 {
     axum::Router::new().route("/hello", get(hello::<T>)).with_state(t)
 }
@@ -42,8 +44,10 @@ mod tests {
         }
     }
 
-    impl<US: UserService> super::UserContainer for UserContainerImpl<US> {
-        fn user_service(&self) -> Arc<impl UserService> {
+    impl<US: UserService> super::UserServiceProvider for UserContainerImpl<US> {
+        type UserService = US;
+
+        fn user_service(&self) -> Arc<Self::UserService> {
             self.user_service.clone()
         }
     }
