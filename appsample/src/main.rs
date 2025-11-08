@@ -33,12 +33,25 @@ pub async fn run_http() {
     .unwrap();
 }
 
+async fn migration(
+    database: stardust_db::Database,
+) -> stardust_common::Result<()> {
+    stardust_core::migration::migrate(database.clone()).await.unwrap();
+    module_user::infra::migration::migrate(database.clone()).await.unwrap();
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     let config = stardust_common::config::Config::test_config();
     stardust_common::logging::init(&config.logging);
     let database = stardust_db::Database::open(&config.database).await.unwrap();
-    stardust_core::migration::migrate(database.clone()).await.unwrap();
-    stardust_user::infra::migration::migrate(database.clone()).await.unwrap();
+
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 {
+        if args[1] == "migrate" {
+            migration(database.clone()).await.unwrap();
+        }
+    }
     //run_http().await;
 }

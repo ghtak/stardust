@@ -1,5 +1,5 @@
 [package]
-name = "stardust-app"
+name = "appsample"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,9 +8,9 @@ stardust-common = { path = "../stardust-common" }
 stardust-db = { path = "../stardust-db" }
 stardust-core = { path = "../stardust-core" }
 stardust-inbound = { path = "../stardust-inbound" }
-stardust-user = { path = "../stardust-user" }
 anyhow = "1.0.100"
 axum = "0.8.6"
 serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.17"
 tokio = { version = "1.48.0", features = ["full"] }
+module-user = { path = "../module-user" }

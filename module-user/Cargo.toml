@@ -1,5 +1,5 @@
 [package]
-name = "stardust-user"
+name = "module-user"
 version = "0.1.0"
 edition = "2024"
 
@@ -18,5 +18,4 @@ sqlx = { version = "0.8.6", features = [
 stardust-db = { path = "../stardust-db" }
 stardust-core = { path = "../stardust-core" }
 tokio = { version = "1.48.0", features = ["full"] }
-trading = "0.1.0"
 tracing = "0.1.41"
