@@ -28,23 +28,31 @@ where
 mod tests {
     use std::sync::Arc;
 
-    use crate::internal::UserServiceImpl;
     use crate::service::UserService;
     use axum::body::Body;
     use axum::http::Request;
     use tower::ServiceExt;
 
-    pub struct UserContainerImpl<US: UserService> {
+    pub struct TestUserService {}
+
+    #[async_trait::async_trait]
+    impl UserService for TestUserService {
+        async fn hello(&self) -> String {
+            "test hello".into()
+        }
+    }
+
+    pub struct Container<US: UserService> {
         user_service: Arc<US>,
     }
 
-    impl<US: UserService> UserContainerImpl<US> {
+    impl<US: UserService> Container<US> {
         pub fn new(user_service: Arc<US>) -> Self {
             Self { user_service }
         }
     }
 
-    impl<US: UserService> super::UserServiceProvider for UserContainerImpl<US> {
+    impl<US: UserService> super::UserServiceProvider for Container<US> {
         type UserService = US;
 
         fn user_service(&self) -> Arc<Self::UserService> {
@@ -54,12 +62,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_hello() {
-        let config = stardust_common::config::Config::test_config();
-        let database =
-            stardust_db::Database::open(&config.database).await.unwrap();
-        let service = Arc::new(UserServiceImpl::new(database));
-        let container = Arc::new(UserContainerImpl::new(service));
-
+        let service = Arc::new(TestUserService {});
+        let container = Arc::new(Container::new(service));
         let router = super::routes(container.clone());
         let resp = router
             .oneshot(
@@ -71,6 +75,9 @@ mod tests {
             )
             .await
             .unwrap();
-        println!("{:?}", resp);
+        let bodybytes =
+            axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let bodystring = String::from_utf8(bodybytes.to_vec()).unwrap();
+        println!("{:?}", bodystring);
     }
 }
