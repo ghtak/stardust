@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use axum::routing::{get, post};
 use stardust_inbound::http::{Json, Path};
+mod container;
 mod error;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -19,15 +22,22 @@ async fn path_handler(Path(name, _): Path<i32, error::ApiError>) -> String {
     format!("Hello, {}!", name)
 }
 
-pub async fn run_http() {
-    let config = stardust_common::config::Config::test_config();
-    println!("{:?}", config);
+pub async fn run_server(
+    config: &stardust_common::config::Config,
+    database: stardust_db::Database,
+) {
+    let user_service = Arc::new(module_user::internal::UserServiceImpl::new(
+        database.clone(),
+    ));
+
+    let container = Arc::new(container::Container::new(user_service.clone()));
     stardust_inbound::http::run(
         &config.server,
         axum::Router::new()
             .route("/", get(|| async { "Stardust Root" }))
             .route("/json", post(json_handler))
-            .route("/path/{name}", get(path_handler)),
+            .route("/path/{name}", get(path_handler))
+            .merge(module_user::inbound::http::routes(container.clone())),
     )
     .await
     .unwrap();
@@ -53,5 +63,6 @@ async fn main() {
             migration(database.clone()).await.unwrap();
         }
     }
-    //run_http().await;
+    
+    run_server(&config, database).await;
 }

@@ -2,13 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::State, routing::get};
 
-use crate::service::UserService;
-
-pub trait UserServiceProvider: Sync + Send {
-    type UserService: UserService;
-
-    fn user_service(&self) -> Arc<Self::UserService>;
-}
+use crate::{inbound::UserServiceProvider, service::UserService};
 
 async fn hello<T>(State(container): State<Arc<T>>) -> String
 where
@@ -28,6 +22,7 @@ where
 mod tests {
     use std::sync::Arc;
 
+    use crate::command::SignupCommand;
     use crate::service::UserService;
     use axum::body::Body;
     use axum::http::Request;
@@ -39,6 +34,12 @@ mod tests {
     impl UserService for TestUserService {
         async fn hello(&self) -> String {
             "test hello".into()
+        }
+        async fn signup(
+            &self,
+            command: &SignupCommand,
+        ) -> stardust_common::Result<()> {
+            Ok(())
         }
     }
 

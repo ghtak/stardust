@@ -33,7 +33,7 @@ pub struct UserEntity {
 pub struct UserAccountEntity {
     pub uid: String,
     pub user_id: i64,
-    pub account_type: String,
+    pub account_type: AccountType,
     pub password_hash: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
