@@ -1,23 +1,34 @@
+use std::sync::Arc;
+
 use crate::command::SignupCommand;
 
-pub struct UserServiceImpl {
+pub struct UserServiceImpl<Hasher> {
     database: stardust_db::Database,
+    hasher: Arc<Hasher>,
 }
 
-impl UserServiceImpl {
-    pub fn new(database: stardust_db::Database) -> Self {
-        Self { database }
+impl<Hasher> UserServiceImpl<Hasher>
+where
+    Hasher: stardust_common::hash::Hasher,
+{
+    pub fn new(database: stardust_db::Database, hasher: Arc<Hasher>) -> Self {
+        Self { database, hasher }
     }
 }
 
 #[async_trait::async_trait]
-impl crate::service::UserService for UserServiceImpl {
+impl<Hasher> crate::service::UserService for UserServiceImpl<Hasher>
+where
+    Hasher: stardust_common::hash::Hasher,
+{
     async fn hello(&self) -> String {
         "hello".into()
     }
 
-
-    async fn signup(&self, command: &SignupCommand) -> stardust_common::Result<()>{
+    async fn signup(
+        &self,
+        command: &SignupCommand,
+    ) -> stardust_common::Result<()> {
         Ok(())
     }
 }

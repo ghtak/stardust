@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::routing::{get, post};
 use stardust_interface::http::{Json, Path};
+mod app;
 mod container;
 mod error;
 
@@ -22,47 +23,42 @@ async fn path_handler(Path(name, _): Path<i32, error::ApiError>) -> String {
     format!("Hello, {}!", name)
 }
 
-pub async fn run_server(
-    config: &stardust_common::config::Config,
-    database: stardust_db::Database,
-) {
-    let user_service = Arc::new(module_user::internal::UserServiceImpl::new(
-        database.clone(),
-    ));
+async fn build_container() -> Arc<app::Container> {
+    let config = stardust_common::config::Config::test_config();
+    stardust_common::logging::init(&config.logging);
+    let database = stardust_db::Database::open(&config.database).await.unwrap();
+    let hasher = Arc::new(app::HasherImpl::default());
+    let user_service =
+        Arc::new(app::UserServiceImpl::new(database.clone(), hasher.clone()));
+    let container = app::Container::new(config, database, user_service);
+    Arc::new(container)
+}
 
-    let container = Arc::new(container::Container::new(user_service.clone()));
+async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
+    stardust_core::migration::migrate(ct.database.clone()).await.unwrap();
+    module_user::infra::migration::migrate(ct.database.clone()).await.unwrap();
+    Ok(())
+}
+
+pub async fn run_server(ct: Arc<app::Container>) {
     stardust_interface::http::run(
-        &config.server,
+        &ct.config.server,
         axum::Router::new()
             .route("/", get(|| async { "Stardust Root" }))
             .route("/json", post(json_handler))
             .route("/path/{name}", get(path_handler))
-            .merge(module_user::interface::http::routes(container.clone())),
+            .merge(module_user::interface::http::routes(ct.clone())),
     )
     .await
     .unwrap();
 }
 
-async fn migration(
-    database: stardust_db::Database,
-) -> stardust_common::Result<()> {
-    stardust_core::migration::migrate(database.clone()).await.unwrap();
-    module_user::infra::migration::migrate(database.clone()).await.unwrap();
-    Ok(())
-}
-
 #[tokio::main]
 async fn main() {
-    let config = stardust_common::config::Config::test_config();
-    stardust_common::logging::init(&config.logging);
-    let database = stardust_db::Database::open(&config.database).await.unwrap();
-
+    let ct = build_container().await;
     let args: Vec<String> = std::env::args().collect();
-    if args.len() > 1 {
-        if args[1] == "migrate" {
-            migration(database.clone()).await.unwrap();
-        }
+    if args.len() > 1 && args[1] == "migrate" {
+        migration(ct.clone()).await.unwrap();
     }
-
-    run_server(&config, database).await;
+    run_server(ct).await;
 }
