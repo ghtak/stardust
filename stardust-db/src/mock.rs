@@ -4,7 +4,7 @@ use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct Database {
-    pool: Arc<Mutex<HashMap<String, Box<dyn Any>>>>,
+    pub _pool: Arc<Mutex<HashMap<String, Box<dyn Any>>>>,
 }
 
 pub enum Handle<'a> {
@@ -17,7 +17,7 @@ impl Database {
         _config: &stardust_common::config::DatabaseConfig,
     ) -> stardust_common::Result<Self> {
         Ok(Self {
-            pool: Arc::new(Mutex::new(HashMap::new())),
+            _pool: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 

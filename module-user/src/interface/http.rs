@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::State, routing::get};
 
-use crate::{inbound::UserServiceProvider, service::UserService};
+use crate::{interface::UserServiceProvider, service::UserService};
 
 async fn hello<T>(State(container): State<Arc<T>>) -> String
 where

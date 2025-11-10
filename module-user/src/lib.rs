@@ -1,6 +1,6 @@
 pub mod command;
 pub mod entity;
-pub mod inbound;
+pub mod interface;
 pub mod infra;
 pub mod internal;
 pub mod query;

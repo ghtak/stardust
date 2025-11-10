@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::routing::{get, post};
-use stardust_inbound::http::{Json, Path};
+use stardust_interface::http::{Json, Path};
 mod container;
 mod error;
 
@@ -31,13 +31,13 @@ pub async fn run_server(
     ));
 
     let container = Arc::new(container::Container::new(user_service.clone()));
-    stardust_inbound::http::run(
+    stardust_interface::http::run(
         &config.server,
         axum::Router::new()
             .route("/", get(|| async { "Stardust Root" }))
             .route("/json", post(json_handler))
             .route("/path/{name}", get(path_handler))
-            .merge(module_user::inbound::http::routes(container.clone())),
+            .merge(module_user::interface::http::routes(container.clone())),
     )
     .await
     .unwrap();
@@ -63,6 +63,6 @@ async fn main() {
             migration(database.clone()).await.unwrap();
         }
     }
-    
+
     run_server(&config, database).await;
 }

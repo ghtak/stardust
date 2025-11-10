@@ -64,7 +64,7 @@ dependencies = [
  "stardust-common",
  "stardust-core",
  "stardust-db",
- "stardust-inbound",
+ "stardust-interface",
  "thiserror 2.0.17",
  "tokio",
 ]
@@ -2110,7 +2110,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "stardust-inbound"
+name = "stardust-interface"
 version = "0.1.0"
 dependencies = [
  "axum",

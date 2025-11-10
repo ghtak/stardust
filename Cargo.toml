@@ -2,7 +2,7 @@
 members = [
     "stardust-common",
     "stardust-db",
-    "stardust-inbound",
+    "stardust-interface",
     "stardust-core",
     "module-user",
     "appsample",

@@ -13,7 +13,7 @@ where
     }
 }
 
-impl<US> module_user::inbound::UserServiceProvider for Container<US>
+impl<US> module_user::interface::UserServiceProvider for Container<US>
 where
     US: module_user::service::UserService,
 {
