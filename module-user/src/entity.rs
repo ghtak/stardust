@@ -1,18 +1,18 @@
 use std::str::FromStr;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum AccountType {
     Local,
     Provisioned,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum Role {
     Admin,
     User,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum Status {
     Active,
     Inactive,
@@ -37,6 +37,12 @@ pub struct UserAccountEntity {
     pub password_hash: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct UserAggregate {
+    pub user: UserEntity,
+    pub accounts: Vec<UserAccountEntity>,
 }
 
 impl std::fmt::Display for AccountType {

@@ -1,8 +1,16 @@
-use crate::command::SignupCommand;
+use crate::{command::{LoginCommand, SignupCommand}, entity};
 
 #[async_trait::async_trait]
 pub trait UserService: Sync + Send {
     async fn hello(&self) -> String;
 
-    async fn signup(&self, command: &SignupCommand) -> stardust_common::Result<()>;
+    async fn signup(
+        &self,
+        command: &SignupCommand,
+    ) -> stardust_common::Result<entity::UserAggregate>;
+
+    async fn login(
+        &self,
+        command: &LoginCommand,
+    ) -> stardust_common::Result<entity::UserAggregate>;
 }

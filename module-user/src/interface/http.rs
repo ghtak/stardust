@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use axum::{extract::State, routing::get};
 
-use crate::{interface::UserServiceProvider, service::UserService};
+use crate::{
+    command::SignupCommand, interface::UserServiceProvider,
+    service::UserService,
+};
 
 async fn hello<T>(State(container): State<Arc<T>>) -> String
 where
@@ -11,18 +14,37 @@ where
     container.user_service().hello().await
 }
 
+async fn signup<T>(State(container): State<Arc<T>>) -> String
+where
+    T: UserServiceProvider,
+{
+    let _ = container
+        .user_service()
+        .signup(&SignupCommand::Local {
+            username: "".into(),
+            email: "".into(),
+            password: "".into(),
+        })
+        .await;
+    "test signup".to_string()
+}
+
 pub fn routes<T>(t: Arc<T>) -> axum::Router
 where
     T: UserServiceProvider + 'static,
 {
-    axum::Router::new().route("/hello", get(hello::<T>)).with_state(t)
+    axum::Router::new()
+        .route("/hello", get(hello::<T>))
+        .route("/signup", get(signup::<T>))
+        .with_state(t)
 }
 
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
 
-    use crate::command::SignupCommand;
+    use crate::command::{LoginCommand, SignupCommand};
+    use crate::entity;
     use crate::service::UserService;
     use axum::body::Body;
     use axum::http::Request;
@@ -37,9 +59,15 @@ mod tests {
         }
         async fn signup(
             &self,
-            command: &SignupCommand,
-        ) -> stardust_common::Result<()> {
-            Ok(())
+            _command: &SignupCommand,
+        ) -> stardust_common::Result<entity::UserAggregate> {
+            unimplemented!()
+        }
+        async fn login(
+            &self,
+            _command: &LoginCommand,
+        ) -> stardust_common::Result<entity::UserAggregate> {
+            unimplemented!()
         }
     }
 

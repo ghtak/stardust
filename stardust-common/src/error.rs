@@ -17,6 +17,12 @@ pub enum Error {
     #[error("Already exists")]
     AlreadyExists,
 
+    #[error("Unauthorized")]
+    Unauthorized,
+
+    #[error("Forbidden")]
+    Forbidden,
+
     #[error("Io Error {0}")]
     IoError(#[from] std::io::Error),
 
@@ -49,7 +55,7 @@ mod tests {
     }
 
     #[test]
-    fn test_anyhow(){
+    fn test_anyhow() {
         let err = anyhow::anyhow!("Invalid AccountType: {}", "params");
         println!("{}", err.to_string());
     }

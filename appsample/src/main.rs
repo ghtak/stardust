@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use axum::routing::{get, post};
+use module_user::interface::UserServiceProvider;
 use stardust_interface::http::{Json, Path};
+
 mod app;
 mod container;
 mod error;
@@ -26,6 +28,7 @@ async fn path_handler(Path(name, _): Path<i32, error::ApiError>) -> String {
 async fn build_container() -> Arc<app::Container> {
     let config = stardust_common::config::Config::test_config();
     stardust_common::logging::init(&config.logging);
+    tracing::info!("config: {:?}", config);
     let database = stardust_db::Database::open(&config.database).await.unwrap();
     let hasher = Arc::new(app::HasherImpl::default());
     let user_service =
@@ -35,8 +38,20 @@ async fn build_container() -> Arc<app::Container> {
 }
 
 async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
-    stardust_core::migration::migrate(ct.database.clone()).await.unwrap();
-    module_user::infra::migration::migrate(ct.database.clone()).await.unwrap();
+    match stardust_core::migration::migrate(ct.database.clone()).await {
+        Ok(_) => println!("Migration successful"),
+        Err(e) => eprintln!("Migration failed: {}", e),
+    };
+
+    match module_user::infra::migration::migrate(
+        ct.database.clone(),
+        ct.user_service(),
+    )
+    .await
+    {
+        Ok(_) => println!("User module migration successful"),
+        Err(e) => eprintln!("User module migration failed: {}", e),
+    }
     Ok(())
 }
 
