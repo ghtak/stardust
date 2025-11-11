@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use stardust_core::infra::migration_repo::MigrationModel;
-
 use crate::entity;
 
 pub async fn migrate<US>(
@@ -14,25 +12,15 @@ where
     let mut handle = database.transaction().await?;
     const NAME: &str = "user_migration";
     let mut migration =
-        stardust_core::infra::migration_repo::get_latest(&mut handle, NAME)
-            .await?
-            .unwrap_or(MigrationModel {
-                name: NAME.into(),
-                version: 0,
-                description: "".into(),
-                updated_at: chrono::Utc::now(),
-            });
+        stardust_core::migration::get_latest(&mut handle, NAME).await?;
 
     if migration.version == 0 {
         crate::infra::user_repo::create_table(&mut handle).await?;
-        migration = stardust_core::infra::migration_repo::create(
+        migration = stardust_core::migration::save(
             &mut handle,
-            &MigrationModel {
-                name: NAME.into(),
-                version: 1,
-                description: "create user table".into(),
-                updated_at: chrono::Utc::now(),
-            },
+            NAME,
+            1,
+            "create user table",
         )
         .await?;
     }
@@ -50,14 +38,11 @@ where
                 status: entity::Status::Active,
             })
             .await?;
-        migration = stardust_core::infra::migration_repo::create(
+        migration = stardust_core::migration::save(
             &mut database.pool(),
-            &MigrationModel {
-                name: NAME.into(),
-                version: 2,
-                description: "create default admin user".into(),
-                updated_at: chrono::Utc::now(),
-            },
+            NAME,
+            2,
+            "create admin user",
         )
         .await?;
     }

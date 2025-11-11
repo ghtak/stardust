@@ -158,3 +158,24 @@ pub async fn find_user_aggregate(
     let accounts = find_user_accounts(handle, user.id).await?;
     Ok(Some(entity::UserAggregate { user, accounts }))
 }
+
+pub async fn save_user_account(
+    handle: &mut stardust_db::Handle<'_>,
+    user_account_entity: &entity::UserAccountEntity,
+) -> stardust_common::Result<entity::UserAccountEntity> {
+    let mut builder = sqlx::QueryBuilder::new(
+        "UPDATE stardust_user_account SET password_hash = ",
+    );
+    builder.push_bind(&user_account_entity.password_hash);
+    builder.push(", updated_at = ");
+    builder.push_bind(user_account_entity.updated_at);
+    builder.push(" WHERE uid = ");
+    builder.push_bind(&user_account_entity.uid);
+    builder.push(" RETURNING *");
+    let row = builder
+        .build_query_as::<model::UserAccountModel>()
+        .fetch_one(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+    Ok(row.into())
+}

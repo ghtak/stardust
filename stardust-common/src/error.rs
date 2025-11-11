@@ -23,6 +23,9 @@ pub enum Error {
     #[error("Forbidden")]
     Forbidden,
 
+    #[error("duplicate entry {0:?}")]
+    Duplicate(Option<String>),
+
     #[error("Io Error {0}")]
     IoError(#[from] std::io::Error),
 
