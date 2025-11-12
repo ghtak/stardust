@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
-use axum::{extract::State, routing::get};
+use axum::{Json, extract::State, routing::{get, post}};
+use stardust_interface::http::ApiResponse;
 
 use crate::{
-    command::SignupCommand, interface::UserServiceProvider,
+    entity,
+    interface::{UserServiceProvider, dto},
     service::UserService,
 };
 
@@ -14,19 +16,32 @@ where
     container.user_service().hello().await
 }
 
-async fn signup<T>(State(container): State<Arc<T>>) -> String
+async fn signup<T>(
+    State(container): State<Arc<T>>,
+    Json(signup_request): Json<dto::SignupRequest>,
+) -> Result<ApiResponse<dto::UserDto>, axum::response::Response>
 where
     T: UserServiceProvider,
 {
-    let _ = container
+    let command = signup_request.into();
+    let user: entity::UserAggregate = container
         .user_service()
-        .signup(&SignupCommand::Local {
-            username: "".into(),
-            email: "".into(),
-            password: "".into(),
-        })
-        .await;
-    "test signup".to_string()
+        .signup(&command)
+        .await
+        .map_err(|e| T::into_response(e))?;
+    Ok(ApiResponse::ok(dto::UserDto {
+        uids: user.accounts.iter().map(|a| a.uid.clone()).collect(),
+        username: user.user.username,
+        email: user.user.email,
+        role: user.user.role.to_string(),
+        status: user.user.status.to_string(),
+    }))
+}
+
+async fn login<T>(
+    State(_): State<Arc<T>>,
+) -> Result<ApiResponse<dto::UserDto>, axum::response::Response> {
+    unimplemented!()
 }
 
 pub fn routes<T>(t: Arc<T>) -> axum::Router
@@ -35,7 +50,8 @@ where
 {
     axum::Router::new()
         .route("/hello", get(hello::<T>))
-        .route("/signup", get(signup::<T>))
+        .route("/auth/user/signup", post(signup::<T>))
+        .route("/auth/user/login", post(login::<T>))
         .with_state(t)
 }
 
@@ -86,6 +102,16 @@ mod tests {
 
         fn user_service(&self) -> Arc<Self::UserService> {
             self.user_service.clone()
+        }
+    }
+
+    impl<US: UserService> stardust_interface::http::CommonErrorToResponse
+        for Container<US>
+    {
+        fn into_response(
+            _: stardust_common::Error,
+        ) -> axum::response::Response {
+            unimplemented!()
         }
     }
 

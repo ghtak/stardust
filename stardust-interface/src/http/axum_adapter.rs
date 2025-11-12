@@ -1,3 +1,46 @@
+use axum::{body::Body, http::StatusCode, response::IntoResponse};
+
+pub trait CommonErrorToResponse {
+    fn into_response(error: stardust_common::Error)
+    -> axum::response::Response;
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct ApiResponse<T: serde::Serialize> {
+    pub code: u16,
+    pub message: Option<String>,
+    pub data: Option<T>,
+}
+
+impl<T: serde::Serialize> ApiResponse<T> {
+    pub fn ok(data: T) -> Self {
+        Self {
+            code: 200,
+            message: None,
+            data: Some(data),
+        }
+    }
+}
+
+impl<T: serde::Serialize> IntoResponse for ApiResponse<T> {
+    fn into_response(self) -> axum::response::Response {
+        let body = serde_json::to_string(&self).unwrap();
+        let content_length = body.len();
+        let mut response = axum::response::Response::new(Body::from(body));
+        *response.status_mut() = StatusCode::from_u16(self.code).unwrap();
+        response.headers_mut().insert(
+            axum::http::header::CONTENT_TYPE,
+            axum::http::HeaderValue::from_static("application/json"),
+        );
+        response.headers_mut().insert(
+            axum::http::header::CONTENT_LENGTH,
+            axum::http::HeaderValue::from_str(&content_length.to_string())
+                .unwrap(),
+        );
+        response
+    }
+}
+
 pub async fn run(
     config: &stardust_common::config::ServerConfig,
     router: axum::Router,
@@ -47,7 +90,7 @@ mod tests {
                 },
             ))
             .layer(TraceIdLayer::default());
-        
+
         let notfound = || async { (StatusCode::NOT_FOUND, "Not found") };
         if let Some(config) = config {
             let fallback_service = ServeDir::new(config.static_dir.as_str())

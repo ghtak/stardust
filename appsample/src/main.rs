@@ -1,29 +1,19 @@
-use std::sync::Arc;
+use std::{sync::Arc, usize};
 
-use axum::routing::{get, post};
+use axum::{
+    body::Body,
+    handler::HandlerWithoutStateExt,
+    http::{Request, Response, StatusCode},
+    middleware::Next,
+    response::IntoResponse,
+};
 use module_user::interface::UserServiceProvider;
-use stardust_interface::http::{Json, Path};
+use tower_http::{services::ServeDir, trace::TraceLayer};
+use tracing::info_span;
 
 mod app;
 mod container;
 mod error;
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-struct JsonRequest {
-    pub name: String,
-}
-
-async fn json_handler(
-    Json(v, _): Json<JsonRequest, error::ApiError>,
-) -> String {
-    println!("{:?}", v);
-    format!("Hello, {}!", v.name)
-}
-
-async fn path_handler(Path(name, _): Path<i32, error::ApiError>) -> String {
-    println!("{}", name);
-    format!("Hello, {}!", name)
-}
 
 async fn build_container() -> Arc<app::Container> {
     let config = stardust_common::config::Config::test_config();
@@ -55,14 +45,87 @@ async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
     Ok(())
 }
 
+pub async fn map_response(
+    request: Request<Body>,
+    next: Next,
+) -> impl IntoResponse {
+    let response = next.run(request).await;
+    match response.status() {
+        StatusCode::UNPROCESSABLE_ENTITY => {
+            let is_json = response
+                .headers()
+                .get(axum::http::header::CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok())
+                .map(|ct| ct.contains("application/json"))
+                .unwrap_or(false);
+            if !is_json {
+                let (mut parts, body) = response.into_parts();
+                let bytes =
+                    axum::body::to_bytes(body, usize::MAX).await.unwrap();
+                let message = String::from_utf8_lossy(bytes.as_ref());
+                let response_body = Body::from(
+                    serde_json::json!({
+                        "code": StatusCode::UNPROCESSABLE_ENTITY.as_u16(),
+                        "message": message
+                    })
+                    .to_string(),
+                );
+                parts.headers.insert(
+                    axum::http::header::CONTENT_TYPE,
+                    axum::http::HeaderValue::from_static("application/json"),
+                );
+                return Response::from_parts(parts, response_body);
+            }
+        }
+        _ => {}
+    }
+    response
+}
+
+pub async fn new_router(ct: Arc<app::Container>) -> axum::Router {
+    let router = axum::Router::new()
+        .merge(module_user::interface::http::routes(ct.clone()))
+        .layer(stardust_interface::http::session_layer(
+            tower_sessions::MemoryStore::default(),
+        ))
+        .layer(TraceLayer::new_for_http().make_span_with(
+            |request: &axum::extract::Request| {
+                info_span!(
+                    "http.request",
+                    method = %request.method(),
+                    path = %request.uri().path(),
+                )
+            },
+        ))
+        .layer(stardust_interface::http::TraceIdLayer::default())
+        .layer(axum::middleware::from_fn(map_response));
+
+    let notfound = || async {
+        (
+            StatusCode::NOT_FOUND,
+            axum::Json(serde_json::json!({
+                        "error" : {
+                            "code": StatusCode::NOT_FOUND.as_u16(),
+                            "message": "Not Found"
+                        }
+            })),
+        )
+    };
+
+    if let Some(httpcfg) = &ct.config.server.http {
+        router.fallback_service(
+            ServeDir::new(httpcfg.static_dir.as_str())
+                .not_found_service(notfound.into_service()),
+        )
+    } else {
+        router.fallback_service(notfound.into_service())
+    }
+}
+
 pub async fn run_server(ct: Arc<app::Container>) {
     stardust_interface::http::run(
         &ct.config.server,
-        axum::Router::new()
-            .route("/", get(|| async { "Stardust Root" }))
-            .route("/json", post(json_handler))
-            .route("/path/{name}", get(path_handler))
-            .merge(module_user::interface::http::routes(ct.clone())),
+        new_router(ct.clone()).await,
     )
     .await
     .unwrap();
