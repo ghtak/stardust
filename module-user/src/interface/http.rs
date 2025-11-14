@@ -14,13 +14,6 @@ use crate::{
     service::UserService,
 };
 
-async fn hello<T>(State(container): State<Arc<T>>) -> String
-where
-    T: UserServiceProvider,
-{
-    container.user_service().hello().await
-}
-
 async fn signup<T>(
     State(container): State<Arc<T>>,
     Json(signup_request): Json<dto::SignupRequest>,
@@ -91,7 +84,6 @@ where
     T: UserServiceProvider + 'static,
 {
     axum::Router::new()
-        .route("/hello", get(hello::<T>))
         .route("/auth/user/signup", post(signup::<T>))
         .route("/auth/user/login", post(login::<T>))
         .route("/auth/user/logout", post(logout::<T>))
