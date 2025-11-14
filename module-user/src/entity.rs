@@ -3,7 +3,6 @@ use std::str::FromStr;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum AccountType {
     Local,
-    Provisioned,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
@@ -49,7 +48,6 @@ impl std::fmt::Display for AccountType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AccountType::Local => write!(f, "Local"),
-            AccountType::Provisioned => write!(f, "Provisioned"),
         }
     }
 }
@@ -60,7 +58,6 @@ impl FromStr for AccountType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Local" => Ok(AccountType::Local),
-            "Provisioned" => Ok(AccountType::Provisioned),
             _ => Err(stardust_common::Error::ParseError(anyhow::anyhow!(
                 "Invalid AccountType: {}",
                 s

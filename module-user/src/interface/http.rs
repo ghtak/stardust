@@ -5,12 +5,12 @@ use axum::{
     extract::State,
     routing::{get, post},
 };
-use stardust_interface::http::ApiResponse;
+use stardust_interface::http::{ApiResponse, session};
 use tower_sessions::Session;
 
 use crate::{
     entity,
-    interface::{UserServiceProvider, dto},
+    interface::{UserServiceProvider, dto, user::AuthUser},
     service::UserService,
 };
 
@@ -31,7 +31,7 @@ where
     let command = signup_request.into();
     let user: entity::UserAggregate =
         container.user_service().signup(&command).await.map_err(|e| ApiResponse::from(e))?;
-    Ok(ApiResponse::ok(dto::UserDto {
+    Ok(ApiResponse::with(dto::UserDto {
         uids: user.accounts.iter().map(|a| a.uid.clone()).collect(),
         username: user.user.username,
         email: user.user.email,
@@ -41,33 +41,49 @@ where
 }
 
 async fn login<T>(
-    State(_): State<Arc<T>>,
-    _: Session,
+    State(container): State<Arc<T>>,
+    session: Session,
+    Json(request): Json<dto::LoginRequest>,
 ) -> Result<ApiResponse<dto::UserDto>, ApiResponse<()>>
 where
     T: UserServiceProvider,
 {
-    unimplemented!()
+    let command = request.into();
+    let user: entity::UserAggregate =
+        container.user_service().login(&command).await.map_err(|e| ApiResponse::from(e))?;
+
+    session::store_user(&session, &user).await?;
+    Ok(ApiResponse::with(dto::UserDto {
+        uids: user.accounts.iter().map(|a| a.uid.clone()).collect(),
+        username: user.user.username,
+        email: user.user.email,
+        role: user.user.role.to_string(),
+        status: user.user.status.to_string(),
+    }))
 }
 
-async fn logout<T>(
-    State(_): State<Arc<T>>,
-    _: Session,
-) -> Result<ApiResponse<dto::UserDto>, ApiResponse<()>>
+async fn logout<T>(State(_): State<Arc<T>>, s: Session) -> Result<ApiResponse<()>, ApiResponse<()>>
 where
     T: UserServiceProvider,
 {
-    unimplemented!()
+    session::remove_user(&s).await?;
+    Ok(ApiResponse::ok())
 }
 
 async fn me<T>(
     State(_): State<Arc<T>>,
-    _: Session,
+    AuthUser(authuser): AuthUser,
 ) -> Result<ApiResponse<dto::UserDto>, ApiResponse<()>>
 where
     T: UserServiceProvider,
 {
-    unimplemented!()
+    Ok(ApiResponse::with(dto::UserDto {
+        uids: authuser.accounts.iter().map(|a| a.uid.clone()).collect(),
+        username: authuser.user.username,
+        email: authuser.user.email,
+        role: authuser.user.role.to_string(),
+        status: authuser.user.status.to_string(),
+    }))
 }
 
 pub fn routes<T>(t: Arc<T>) -> axum::Router

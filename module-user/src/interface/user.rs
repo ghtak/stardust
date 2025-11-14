@@ -57,3 +57,29 @@ impl Deref for AuthUser {
         &self.0
     }
 }
+
+#[derive(Debug)]
+pub struct AdminUser(pub UserAggregate);
+
+impl<S> FromRequestParts<S> for AdminUser
+where
+    S: Send + Sync,
+{
+    type Rejection = ApiResponse<()>;
+
+    async fn from_request_parts(
+        parts: &mut axum::http::request::Parts,
+        s: &S,
+    ) -> Result<Self, Self::Rejection> {
+        match <AuthUser as FromRequestParts<S>>::from_request_parts(parts, s).await {
+            Ok(authuser) => {
+                if authuser.user.role == crate::entity::Role::Admin {
+                    Ok(Self(authuser.0))
+                } else {
+                    Err(ApiResponse::error(StatusCode::FORBIDDEN, "Forbidden"))
+                }
+            }
+            Err(e) => Err(e),
+        }
+    }
+}

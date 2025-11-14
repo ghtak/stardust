@@ -33,7 +33,7 @@ where
                 username: "admin".into(),
                 email: "admin@stardust.io".into(),
                 password: "1qaz2wsx!".into(),
-                account_type: entity::AccountType::Provisioned,
+                account_type: entity::AccountType::Local,
                 role: entity::Role::Admin,
                 status: entity::Status::Active,
             })

@@ -20,20 +20,14 @@ where
         Self { database, hasher }
     }
 
-    pub async fn rehash_password(
-        &self,
-        user_accout: &entity::UserAccountEntity,
-        password: &str,
-    ) {
+    pub async fn rehash_password(&self, user_accout: &entity::UserAccountEntity, password: &str) {
         match self.hasher.hash(password) {
             Ok(hash) => {
                 let mut save_user_account = user_accout.clone();
                 save_user_account.password_hash = hash;
-                if let Err(e) = user_repo::save_user_account(
-                    &mut self.database.pool(),
-                    &save_user_account,
-                )
-                .await
+                if let Err(e) =
+                    user_repo::save_user_account(&mut self.database.pool(), &save_user_account)
+                        .await
                 {
                     tracing::warn!("failed to save user account: {:?}", e);
                 }
@@ -77,8 +71,7 @@ where
             created_at: now,
             updated_at: now,
         };
-        let user_entity =
-            user_repo::create_user(&mut handle, &user_entity).await?;
+        let user_entity = user_repo::create_user(&mut handle, &user_entity).await?;
 
         let password_hash = self.hasher.hash(command.password())?;
         let user_account_entity = entity::UserAccountEntity {
@@ -90,8 +83,7 @@ where
             updated_at: now,
         };
         let _account_entity =
-            user_repo::create_user_account(&mut handle, &user_account_entity)
-                .await?;
+            user_repo::create_user_account(&mut handle, &user_account_entity).await?;
         handle.commit().await?;
         Ok(entity::UserAggregate {
             user: user_entity,
@@ -106,21 +98,15 @@ where
         match command {
             LoginCommand::Local { email, password } => {
                 let query = query::FindUserQuery::by_email(email);
-                let Some(user) = user_repo::find_user_aggregate(
-                    &mut self.database.pool(),
-                    &query,
-                )
-                .await?
+                let Some(user) =
+                    user_repo::find_user_aggregate(&mut self.database.pool(), &query).await?
                 else {
                     return Err(stardust_common::Error::Unauthorized);
                 };
-                for account in user
-                    .accounts
-                    .iter()
-                    .filter(|a| a.account_type == entity::AccountType::Local)
+                for account in
+                    user.accounts.iter().filter(|a| a.account_type == entity::AccountType::Local)
                 {
-                    let result =
-                        self.hasher.verify(password, &account.password_hash)?;
+                    let result = self.hasher.verify(password, &account.password_hash)?;
                     if result.is_valid == false {
                         continue;
                     }

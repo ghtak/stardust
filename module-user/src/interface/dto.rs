@@ -18,6 +18,21 @@ impl From<SignupRequest> for command::SignupCommand {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct LoginRequest {
+    pub email: String,
+    pub password: String,
+}
+
+impl From<LoginRequest> for command::LoginCommand {
+    fn from(value: LoginRequest) -> Self {
+        command::LoginCommand::Local {
+            email: value.email,
+            password: value.password,
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct UserDto {
     pub username: String,
     pub email: String,
