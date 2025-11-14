@@ -1,12 +1,13 @@
 pub mod dto;
 pub mod http;
+pub mod user;
 
 use std::sync::Arc;
 
 use crate::service::UserService;
 
 pub trait UserServiceProvider:
-    Sync + Send + stardust_interface::http::CommonErrorToResponse
+    Sync + Send
 {
     type UserService: UserService;
 

@@ -1244,6 +1244,7 @@ dependencies = [
  "stardust-interface",
  "tokio",
  "tower",
+ "tower-sessions",
  "tracing",
 ]
 
@@ -2119,6 +2120,7 @@ name = "stardust-interface"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "bytes",
  "chrono",
  "serde",
  "serde_json",

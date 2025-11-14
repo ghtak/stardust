@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -37,6 +37,9 @@ pub enum Error {
 
     #[error("Database error: {0}")]
     DatabaseError(anyhow::Error),
+
+    #[error("Store error: {0}")]
+    StoreError(anyhow::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -1,13 +1,17 @@
-use std::{sync::Arc, usize};
+use std::sync::Arc;
 
 use axum::{
     body::Body,
     handler::HandlerWithoutStateExt,
-    http::{Request, Response, StatusCode},
+    http::{HeaderValue, Request, Response, StatusCode, header},
     middleware::Next,
     response::IntoResponse,
 };
 use module_user::interface::UserServiceProvider;
+use stardust_interface::http::{
+    ApiResponse,
+    utils::{into_string, is_json_content},
+};
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::info_span;
 
@@ -21,8 +25,7 @@ async fn build_container() -> Arc<app::Container> {
     tracing::info!("config: {:?}", config);
     let database = stardust_db::Database::open(&config.database).await.unwrap();
     let hasher = Arc::new(app::HasherImpl::default());
-    let user_service =
-        Arc::new(app::UserServiceImpl::new(database.clone(), hasher.clone()));
+    let user_service = Arc::new(app::UserServiceImpl::new(database.clone(), hasher.clone()));
     let container = app::Container::new(config, database, user_service);
     Arc::new(container)
 }
@@ -33,49 +36,39 @@ async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
         Err(e) => eprintln!("Migration failed: {}", e),
     };
 
-    match module_user::infra::migration::migrate(
-        ct.database.clone(),
-        ct.user_service(),
-    )
-    .await
-    {
+    match module_user::infra::migration::migrate(ct.database.clone(), ct.user_service()).await {
         Ok(_) => println!("User module migration successful"),
         Err(e) => eprintln!("User module migration failed: {}", e),
     }
     Ok(())
 }
 
-pub async fn map_response(
-    request: Request<Body>,
-    next: Next,
-) -> impl IntoResponse {
+pub async fn map_response(request: Request<Body>, next: Next) -> impl IntoResponse {
     let response = next.run(request).await;
     match response.status() {
-        StatusCode::UNPROCESSABLE_ENTITY => {
-            let is_json = response
-                .headers()
-                .get(axum::http::header::CONTENT_TYPE)
-                .and_then(|v| v.to_str().ok())
-                .map(|ct| ct.contains("application/json"))
-                .unwrap_or(false);
-            if !is_json {
-                let (mut parts, body) = response.into_parts();
-                let bytes =
-                    axum::body::to_bytes(body, usize::MAX).await.unwrap();
-                let message = String::from_utf8_lossy(bytes.as_ref());
-                let response_body = Body::from(
-                    serde_json::json!({
-                        "code": StatusCode::UNPROCESSABLE_ENTITY.as_u16(),
-                        "message": message
-                    })
-                    .to_string(),
-                );
-                parts.headers.insert(
-                    axum::http::header::CONTENT_TYPE,
-                    axum::http::HeaderValue::from_static("application/json"),
-                );
-                return Response::from_parts(parts, response_body);
-            }
+        StatusCode::UNPROCESSABLE_ENTITY if !is_json_content(response.headers()) => {
+            let (mut parts, body) = response.into_parts();
+            let bodystr = into_string(body).await.unwrap_or_else(|e| {
+                tracing::warn!("Failed to read response body: {}", e);
+                String::new()
+            });
+            let content = ApiResponse::error(StatusCode::UNPROCESSABLE_ENTITY, bodystr)
+                .into_json_string()
+                .unwrap_or_else(|e| {
+                    tracing::warn!("Failed to serialize error response: {}", e);
+                    String::from(r#"{"code":422,"message":"Unprocessable Entity"}"#)
+                });
+            parts.headers.extend([
+                (
+                    header::CONTENT_TYPE,
+                    HeaderValue::from_static("application/json"),
+                ),
+                (
+                    header::CONTENT_LENGTH,
+                    HeaderValue::from(content.len() as u64),
+                ),
+            ]);
+            return Response::from_parts(parts, Body::from(content));
         }
         _ => {}
     }
@@ -88,15 +81,15 @@ pub async fn new_router(ct: Arc<app::Container>) -> axum::Router {
         .layer(stardust_interface::http::session_layer(
             tower_sessions::MemoryStore::default(),
         ))
-        .layer(TraceLayer::new_for_http().make_span_with(
-            |request: &axum::extract::Request| {
+        .layer(
+            TraceLayer::new_for_http().make_span_with(|request: &axum::extract::Request| {
                 info_span!(
                     "http.request",
                     method = %request.method(),
                     path = %request.uri().path(),
                 )
-            },
-        ))
+            }),
+        )
         .layer(stardust_interface::http::TraceIdLayer::default())
         .layer(axum::middleware::from_fn(map_response));
 
@@ -114,8 +107,7 @@ pub async fn new_router(ct: Arc<app::Container>) -> axum::Router {
 
     if let Some(httpcfg) = &ct.config.server.http {
         router.fallback_service(
-            ServeDir::new(httpcfg.static_dir.as_str())
-                .not_found_service(notfound.into_service()),
+            ServeDir::new(httpcfg.static_dir.as_str()).not_found_service(notfound.into_service()),
         )
     } else {
         router.fallback_service(notfound.into_service())
@@ -123,12 +115,7 @@ pub async fn new_router(ct: Arc<app::Container>) -> axum::Router {
 }
 
 pub async fn run_server(ct: Arc<app::Container>) {
-    stardust_interface::http::run(
-        &ct.config.server,
-        new_router(ct.clone()).await,
-    )
-    .await
-    .unwrap();
+    stardust_interface::http::run(&ct.config.server, new_router(ct.clone()).await).await.unwrap();
 }
 
 #[tokio::main]

@@ -1,9 +1,11 @@
-use axum::{body::Body, http::StatusCode, response::IntoResponse};
-
-pub trait CommonErrorToResponse {
-    fn into_response(error: stardust_common::Error)
-    -> axum::response::Response;
-}
+use axum::{
+    body::Body,
+    http::{
+        StatusCode,
+        header::{CONTENT_LENGTH, CONTENT_TYPE},
+    },
+    response::IntoResponse,
+};
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct ApiResponse<T: serde::Serialize> {
@@ -20,24 +22,55 @@ impl<T: serde::Serialize> ApiResponse<T> {
             data: Some(data),
         }
     }
+
+    pub fn into_json_string(self) -> stardust_common::Result<String> {
+        let body = serde_json::to_string(&self)
+            .map_err(|e| stardust_common::Error::ParseError(e.into()))?;
+        Ok(body)
+    }
+}
+
+impl ApiResponse<()> {
+    pub fn code(code: StatusCode) -> Self {
+        Self {
+            code: code.as_u16(),
+            message: None,
+            data: None,
+        }
+    }
+
+    pub fn error(code: StatusCode, message: impl Into<String>) -> Self {
+        Self {
+            code: code.as_u16(),
+            message: Some(message.into()),
+            data: None,
+        }
+    }
 }
 
 impl<T: serde::Serialize> IntoResponse for ApiResponse<T> {
     fn into_response(self) -> axum::response::Response {
         let body = serde_json::to_string(&self).unwrap();
-        let content_length = body.len();
-        let mut response = axum::response::Response::new(Body::from(body));
-        *response.status_mut() = StatusCode::from_u16(self.code).unwrap();
-        response.headers_mut().insert(
-            axum::http::header::CONTENT_TYPE,
-            axum::http::HeaderValue::from_static("application/json"),
-        );
-        response.headers_mut().insert(
-            axum::http::header::CONTENT_LENGTH,
-            axum::http::HeaderValue::from_str(&content_length.to_string())
-                .unwrap(),
-        );
-        response
+        axum::response::Response::builder()
+            .status(StatusCode::from_u16(self.code).unwrap())
+            .header(CONTENT_TYPE, "application/json")
+            .header(CONTENT_LENGTH, body.len())
+            .body(Body::from(body))
+            .unwrap()
+    }
+}
+
+impl From<stardust_common::Error> for ApiResponse<()> {
+    fn from(value: stardust_common::Error) -> Self {
+        let statuscode = match value {
+            stardust_common::Error::AlreadyExists => StatusCode::CONFLICT,
+            stardust_common::Error::Unauthorized => StatusCode::UNAUTHORIZED,
+            stardust_common::Error::Forbidden => StatusCode::FORBIDDEN,
+            stardust_common::Error::NotFound => StatusCode::NOT_FOUND,
+            stardust_common::Error::InvalidParameter(_) => StatusCode::BAD_REQUEST,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        Self::error(statuscode, value.to_string())
     }
 }
 
@@ -45,12 +78,8 @@ pub async fn run(
     config: &stardust_common::config::ServerConfig,
     router: axum::Router,
 ) -> stardust_common::Result<()> {
-    let listener = tokio::net::TcpListener::bind(format!(
-        "{}:{}",
-        config.host.as_str(),
-        config.port
-    ))
-    .await?;
+    let listener =
+        tokio::net::TcpListener::bind(format!("{}:{}", config.host.as_str(), config.port)).await?;
     axum::serve(listener, router).await?;
     Ok(())
 }
@@ -80,15 +109,15 @@ mod tests {
                 }),
             )
             .layer(session_layer(MemoryStore::default()))
-            .layer(TraceLayer::new_for_http().make_span_with(
-                |request: &axum::extract::Request| {
+            .layer(
+                TraceLayer::new_for_http().make_span_with(|request: &axum::extract::Request| {
                     info_span!(
                         "http.request",
                         method = %request.method(),
                         uri = %request.uri().path()
                     )
-                },
-            ))
+                }),
+            )
             .layer(TraceIdLayer::default());
 
         let notfound = || async { (StatusCode::NOT_FOUND, "Not found") };
@@ -106,11 +135,7 @@ mod tests {
         let config = stardust_common::config::Config::test_config();
         stardust_common::logging::init(&config.logging);
         let router = setup_router(&config.server.http);
-        let reqeust = Request::builder()
-            .method("GET")
-            .uri("/")
-            .body(Body::from(""))
-            .unwrap();
+        let reqeust = Request::builder().method("GET").uri("/").body(Body::from("")).unwrap();
         router.oneshot(reqeust).await.unwrap();
     }
 }

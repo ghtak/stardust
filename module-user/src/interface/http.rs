@@ -1,7 +1,12 @@
 use std::sync::Arc;
 
-use axum::{Json, extract::State, routing::{get, post}};
+use axum::{
+    Json,
+    extract::State,
+    routing::{get, post},
+};
 use stardust_interface::http::ApiResponse;
+use tower_sessions::Session;
 
 use crate::{
     entity,
@@ -19,16 +24,13 @@ where
 async fn signup<T>(
     State(container): State<Arc<T>>,
     Json(signup_request): Json<dto::SignupRequest>,
-) -> Result<ApiResponse<dto::UserDto>, axum::response::Response>
+) -> Result<ApiResponse<dto::UserDto>, ApiResponse<()>>
 where
     T: UserServiceProvider,
 {
     let command = signup_request.into();
-    let user: entity::UserAggregate = container
-        .user_service()
-        .signup(&command)
-        .await
-        .map_err(|e| T::into_response(e))?;
+    let user: entity::UserAggregate =
+        container.user_service().signup(&command).await.map_err(|e| ApiResponse::from(e))?;
     Ok(ApiResponse::ok(dto::UserDto {
         uids: user.accounts.iter().map(|a| a.uid.clone()).collect(),
         username: user.user.username,
@@ -40,7 +42,31 @@ where
 
 async fn login<T>(
     State(_): State<Arc<T>>,
-) -> Result<ApiResponse<dto::UserDto>, axum::response::Response> {
+    _: Session,
+) -> Result<ApiResponse<dto::UserDto>, ApiResponse<()>>
+where
+    T: UserServiceProvider,
+{
+    unimplemented!()
+}
+
+async fn logout<T>(
+    State(_): State<Arc<T>>,
+    _: Session,
+) -> Result<ApiResponse<dto::UserDto>, ApiResponse<()>>
+where
+    T: UserServiceProvider,
+{
+    unimplemented!()
+}
+
+async fn me<T>(
+    State(_): State<Arc<T>>,
+    _: Session,
+) -> Result<ApiResponse<dto::UserDto>, ApiResponse<()>>
+where
+    T: UserServiceProvider,
+{
     unimplemented!()
 }
 
@@ -52,6 +78,8 @@ where
         .route("/hello", get(hello::<T>))
         .route("/auth/user/signup", post(signup::<T>))
         .route("/auth/user/login", post(login::<T>))
+        .route("/auth/user/logout", post(logout::<T>))
+        .route("/auth/user/me", get(me::<T>))
         .with_state(t)
 }
 
@@ -105,33 +133,16 @@ mod tests {
         }
     }
 
-    impl<US: UserService> stardust_interface::http::CommonErrorToResponse
-        for Container<US>
-    {
-        fn into_response(
-            _: stardust_common::Error,
-        ) -> axum::response::Response {
-            unimplemented!()
-        }
-    }
-
     #[tokio::test]
     async fn test_hello() {
         let service = Arc::new(TestUserService {});
         let container = Arc::new(Container::new(service));
         let router = super::routes(container.clone());
         let resp = router
-            .oneshot(
-                Request::builder()
-                    .method("GET")
-                    .uri("/hello")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().method("GET").uri("/hello").body(Body::empty()).unwrap())
             .await
             .unwrap();
-        let bodybytes =
-            axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let bodybytes = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
         let bodystring = String::from_utf8(bodybytes.to_vec()).unwrap();
         println!("{:?}", bodystring);
     }
