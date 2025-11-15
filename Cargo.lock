@@ -1237,6 +1237,7 @@ dependencies = [
  "axum",
  "chrono",
  "serde",
+ "serde_json",
  "sqlx",
  "stardust-common",
  "stardust-core",
@@ -2097,10 +2098,12 @@ dependencies = [
  "anyhow",
  "chrono",
  "serde",
+ "serde_json",
  "sqlx",
  "stardust-common",
  "stardust-db",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

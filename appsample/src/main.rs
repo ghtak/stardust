@@ -23,6 +23,7 @@ async fn build_container() -> Arc<app::Container> {
     let config = stardust_common::config::Config::test_config();
     stardust_common::logging::init(&config.logging);
     tracing::info!("config: {:?}", config);
+    stardust_core::audit(0, "sys.init", serde_json::Value::Null);
     let database = stardust_db::Database::open(&config.database).await.unwrap();
     let hasher = Arc::new(app::HasherImpl::default());
     let user_service = Arc::new(app::UserServiceImpl::new(database.clone(), hasher.clone()));

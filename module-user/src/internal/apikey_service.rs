@@ -41,6 +41,7 @@ where
             deactivated_at: None,
         };
         let entity = apikey_repo::create_apikey(&mut self.database.pool(), &entity).await?;
+        stardust_core::audit(entity.user_id, "apikey.created", serde_json::json!(entity));
         Ok(With {
             inner: key,
             related: entity,
@@ -77,6 +78,8 @@ where
             return Err(stardust_common::Error::Forbidden);
         }
         key.deactivated_at = Some(chrono::Utc::now());
-        apikey_repo::save_apikey(&mut self.database.pool(), &key).await
+        let key = apikey_repo::save_apikey(&mut self.database.pool(), &key).await?;
+        stardust_core::audit(key.user_id, "apikey.deactivated", serde_json::json!(key));
+        Ok(key)
     }
 }
