@@ -6,8 +6,12 @@ pub mod dev_env {
     pub type UserContaierImpl =
         module_user::interface::container::Container<UserServiceImpl, ApikeyServiceImpl>;
 
-
-    pub type OAuth2ServerContainerImpl = module_oauth2_server::interface::container::Container;
+    pub type OAuth2ClientServiceImpl =
+        module_oauth2_server::internal::OAuth2ClientServiceImpl;
+    pub type OAuth2ServerContainerImpl = module_oauth2_server::interface::container::Container<
+        UserContaierImpl,
+        OAuth2ClientServiceImpl,
+    >;
 
     pub type Container = crate::container::Container<UserContaierImpl, OAuth2ServerContainerImpl>;
 }
