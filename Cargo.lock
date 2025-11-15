@@ -59,6 +59,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "module-oauth2-server",
  "module-user",
  "serde",
  "serde_json",
@@ -1226,6 +1227,27 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "module-oauth2-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "chrono",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "stardust-common",
+ "stardust-core",
+ "stardust-db",
+ "stardust-interface",
+ "tokio",
+ "tower",
+ "tower-sessions",
+ "tracing",
 ]
 
 [[package]]

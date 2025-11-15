@@ -54,6 +54,12 @@ async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
         Ok(_) => println!("User module migration successful"),
         Err(e) => eprintln!("User module migration failed: {}", e),
     }
+
+    match module_oauth2_server::infra::migration::migrate(ct.database.clone()).await {
+        Ok(_) => println!("OAuth2 module migration successful"),
+        Err(e) => eprintln!("OAuth2 module migration failed: {}", e),
+    }
+
     Ok(())
 }
 

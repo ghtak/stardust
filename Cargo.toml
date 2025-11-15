@@ -5,6 +5,7 @@ members = [
     "stardust-interface",
     "stardust-core",
     "module-user",
+    "module-oauth2-server",
     "appsample",
 ]
 

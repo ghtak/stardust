@@ -5,6 +5,8 @@ use crate::{
     infra::{apikey_repo, user_repo},
 };
 
+const NAME: &str = "user_migration";
+
 pub async fn migrate<US>(
     database: stardust_db::Database,
     user_service: Arc<US>,
@@ -13,7 +15,6 @@ where
     US: crate::service::UserService + 'static,
 {
     let mut handle = database.transaction().await?;
-    const NAME: &str = "user_migration";
     let mut migration = stardust_core::migration::get_latest(&mut handle, NAME).await?;
 
     if migration.version == 0 {
@@ -48,7 +49,6 @@ where
                 .await?;
     }
 
-    if migration.version == 3 {
-    }
+    if migration.version == 3 {}
     Ok(())
 }
