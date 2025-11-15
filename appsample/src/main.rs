@@ -7,7 +7,7 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-use module_user::interface::UserServiceProvider;
+use module_user::interface::ServiceProvider;
 use stardust_interface::http::{
     ApiResponse,
     utils::{into_string, is_json_content},
@@ -26,7 +26,11 @@ async fn build_container() -> Arc<app::Container> {
     let database = stardust_db::Database::open(&config.database).await.unwrap();
     let hasher = Arc::new(app::HasherImpl::default());
     let user_service = Arc::new(app::UserServiceImpl::new(database.clone(), hasher.clone()));
-    let container = app::Container::new(config, database, user_service);
+    let apikey_service = Arc::new(app::ApikeyServiceImpl::new(
+        database.clone(),
+        hasher.clone(),
+    ));
+    let container = app::Container::new(config, database, user_service, apikey_service);
     Arc::new(container)
 }
 

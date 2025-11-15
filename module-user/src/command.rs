@@ -61,3 +61,8 @@ impl SignupCommand {
 pub enum LoginCommand {
     Local { email: String, password: String },
 }
+
+pub struct CreateApiKeyCommand {
+    pub user_id: i64,
+    pub description: String,
+}
