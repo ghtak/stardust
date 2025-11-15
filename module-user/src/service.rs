@@ -1,6 +1,6 @@
 use stardust_common::With;
 
-use crate::{command, entity};
+use crate::{command, entity, query};
 
 #[async_trait::async_trait]
 pub trait UserService: Sync + Send {
@@ -25,6 +25,16 @@ pub trait ApiKeyService: Sync + Send {
 
     fn find_user(
         &self,
-        command: &command::FindApiKeyUserCommand,
+        query: &query::FindApiKeyUserQuery<'_>,
     ) -> impl Future<Output = stardust_common::Result<Option<entity::UserAggregate>>> + Send;
+
+    fn get_apikeys(
+        &self,
+        query: &query::GetApiKeysQuery,
+    ) -> impl Future<Output = stardust_common::Result<Vec<entity::ApiKeyEntity>>> + Send;
+
+    fn deactivate_apikey(
+        &self,
+        command: &command::DeactivateApiKeyCommand,
+    ) -> impl Future<Output = stardust_common::Result<entity::ApiKeyEntity>> + Send;
 }

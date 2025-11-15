@@ -67,6 +67,7 @@ pub struct CreateApiKeyCommand {
     pub description: String,
 }
 
-pub struct FindApiKeyUserCommand {
-    pub key_hash: String,
+pub struct DeactivateApiKeyCommand {
+    pub id: i64,
 }
+

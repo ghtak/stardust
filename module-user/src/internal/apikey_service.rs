@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use stardust_common::With;
 
-use crate::{command, entity, infra::apikey_repo, service::ApiKeyService};
+use crate::{command, entity, infra::apikey_repo, query, service::ApiKeyService};
 
 pub struct ApikeyServiceImpl<Hasher> {
     database: stardust_db::Database,
@@ -48,9 +48,23 @@ where
     }
 
     async fn find_user(
-            &self,
-            command: &command::FindApiKeyUserCommand,
-        ) -> stardust_common::Result<Option<entity::UserAggregate>> {
-        return apikey_repo::find_user(&mut self.database.pool(), command).await;
+        &self,
+        query: &query::FindApiKeyUserQuery<'_>,
+    ) -> stardust_common::Result<Option<entity::UserAggregate>> {
+        return apikey_repo::find_user(&mut self.database.pool(), &query).await;
+    }
+
+    async fn get_apikeys(
+        &self,
+        _query: &query::GetApiKeysQuery,
+    ) -> stardust_common::Result<Vec<entity::ApiKeyEntity>> {
+        unimplemented!()
+    }
+
+    async fn deactivate_apikey(
+        &self,
+        _command: &command::DeactivateApiKeyCommand,
+    ) -> stardust_common::Result<entity::ApiKeyEntity> {
+        unimplemented!()
     }
 }

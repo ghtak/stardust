@@ -54,3 +54,13 @@ pub struct CreateApiKeyResponse {
 }
 
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ApiKeyDto{
+    pub id: i64,
+    pub prefix: String,
+    pub description: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub last_used_at: String,
+    pub deactivated_at: Option<String>,
+}

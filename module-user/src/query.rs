@@ -59,3 +59,12 @@ impl<'a> FindUserQuery<'a> {
         self
     }
 }
+
+
+pub struct FindApiKeyUserQuery<'a> {
+    pub key_hash: &'a str,
+}
+
+pub struct GetApiKeysQuery {
+    pub user_id: i64,
+}

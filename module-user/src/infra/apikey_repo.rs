@@ -1,6 +1,6 @@
 use crate::{
-    command, entity,
-    infra::model,
+    entity,
+    infra::model, query,
 };
 
 pub async fn create_table(handle: &mut stardust_db::Handle<'_>) -> stardust_common::Result<()> {
@@ -55,7 +55,7 @@ pub async fn create_apikey(
 
 pub async fn find_user(
     handle: &mut stardust_db::Handle<'_>,
-    command: &command::FindApiKeyUserCommand,
+    query: &query::FindApiKeyUserQuery<'_>,
 ) -> stardust_common::Result<Option<entity::UserAggregate>> {
     let mut builder = sqlx::QueryBuilder::new(
         r#"
@@ -67,7 +67,7 @@ pub async fn find_user(
     );
     builder
         .push("(SELECT user_id from stardust_apikey where key_hash = ")
-        .push_bind(&command.key_hash)
+        .push_bind(query.key_hash)
         .push(" AND deactivated_at IS NULL)");
 
     let rows = builder

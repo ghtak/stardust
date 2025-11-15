@@ -103,16 +103,17 @@ where
 async fn get_apikey<T>(
     State(_): State<Arc<T>>,
     AuthUser(_): AuthUser,
-) -> Result<ApiResponse<String>, ApiResponse<()>>
+) -> Result<ApiResponse<Vec<dto::ApiKeyDto>>, ApiResponse<()>>
 where
     T: ServiceProvider,
 {
     unimplemented!()
 }
 
-async fn delete_apikey<T>(
+async fn deactivate_apikey<T>(
     State(_): State<Arc<T>>,
     AuthUser(_): AuthUser,
+    axum::extract::Path(_id): axum::extract::Path<i64>,
 ) -> Result<ApiResponse<String>, ApiResponse<()>>
 where
     T: ServiceProvider,
@@ -131,7 +132,11 @@ where
         .route("/auth/user/me", get(me::<T>))
         .route(
             "/auth/user/apikey",
-            get(get_apikey::<T>).post(create_apikey::<T>).delete(delete_apikey),
+            get(get_apikey::<T>).post(create_apikey::<T>),
+        )
+        .route(
+            "/auth/user/apikey/:id",
+            get(get_apikey::<T>).delete(deactivate_apikey),
         )
         .with_state(t)
 }
