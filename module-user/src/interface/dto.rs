@@ -40,3 +40,15 @@ pub struct UserDto {
     pub status: String,
     pub uids: Vec<String>,
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CreateApiKeyRequest {
+    pub description: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CreateApiKeyResponse {
+    pub id: i64,
+    pub key: String,
+    pub description: String,
+}

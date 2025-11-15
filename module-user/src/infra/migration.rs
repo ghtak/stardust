@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::entity;
+use crate::{
+    entity,
+    infra::{apikey_repo, user_repo},
+};
 
 pub async fn migrate<US>(
     database: stardust_db::Database,
@@ -11,18 +14,12 @@ where
 {
     let mut handle = database.transaction().await?;
     const NAME: &str = "user_migration";
-    let mut migration =
-        stardust_core::migration::get_latest(&mut handle, NAME).await?;
+    let mut migration = stardust_core::migration::get_latest(&mut handle, NAME).await?;
 
     if migration.version == 0 {
-        crate::infra::user_repo::create_table(&mut handle).await?;
-        migration = stardust_core::migration::save(
-            &mut handle,
-            NAME,
-            1,
-            "create user table",
-        )
-        .await?;
+        user_repo::create_table(&mut handle).await?;
+        migration =
+            stardust_core::migration::save(&mut handle, NAME, 1, "create user table").await?;
     }
     handle.commit().await?;
 
@@ -38,16 +35,20 @@ where
                 status: entity::Status::Active,
             })
             .await?;
-        migration = stardust_core::migration::save(
-            &mut database.pool(),
-            NAME,
-            2,
-            "create admin user",
-        )
-        .await?;
+        migration =
+            stardust_core::migration::save(&mut database.pool(), NAME, 2, "create admin user")
+                .await?;
     }
 
-    if migration.version == 2 {}
+    if migration.version == 2 {
+        tracing::info!("migration 2 begin");
+        apikey_repo::create_table(&mut database.pool()).await?;
+        migration =
+            stardust_core::migration::save(&mut database.pool(), NAME, 3, "create apikey table")
+                .await?;
+    }
 
+    if migration.version == 3 {
+    }
     Ok(())
 }

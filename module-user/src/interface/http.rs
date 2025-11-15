@@ -79,6 +79,37 @@ where
     }))
 }
 
+async fn create_apikey<T>(
+    State(_): State<Arc<T>>,
+    AuthUser(_): AuthUser,
+    axum::Json(_): axum::Json<dto::CreateApiKeyRequest>,
+) -> Result<ApiResponse<dto::CreateApiKeyResponse>, ApiResponse<()>>
+where
+    T: UserServiceProvider,
+{
+    unimplemented!()
+}
+
+async fn get_apikey<T>(
+    State(_): State<Arc<T>>,
+    AuthUser(_): AuthUser,
+) -> Result<ApiResponse<String>, ApiResponse<()>>
+where
+    T: UserServiceProvider,
+{
+    unimplemented!()
+}
+
+async fn delete_apikey<T>(
+    State(_): State<Arc<T>>,
+    AuthUser(_): AuthUser,
+) -> Result<ApiResponse<String>, ApiResponse<()>>
+where
+    T: UserServiceProvider,
+{
+    unimplemented!()
+}
+
 pub fn routes<T>(t: Arc<T>) -> axum::Router
 where
     T: UserServiceProvider + 'static,
@@ -88,6 +119,10 @@ where
         .route("/auth/user/login", post(login::<T>))
         .route("/auth/user/logout", post(logout::<T>))
         .route("/auth/user/me", get(me::<T>))
+        .route(
+            "/auth/user/apikey",
+            get(get_apikey::<T>).post(create_apikey::<T>).delete(delete_apikey),
+        )
         .with_state(t)
 }
 
