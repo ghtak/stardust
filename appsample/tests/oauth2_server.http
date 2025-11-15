@@ -1,0 +1,17 @@
+
+###
+# @oauth2 client create
+
+POST http://localhost:5299/oauth2/client
+Content-Type: application/json
+X-ApiKey : 53ce97cf782d4795953b1eb52801074f
+
+{
+    "client_id": "client_id",
+    "client_secret": "client_secret",
+    "name": "client_name",
+    "redirect_uris": ["http://localhost:5299/callback"],
+    "grant_types": ["authorization_code", "refresh_token"],
+    "auth_methods": ["client_secret_basic"],
+    "scopes": ["read", "write"]
+}

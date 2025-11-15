@@ -1,5 +1,4 @@
-use crate::command;
-
+use crate::{command, entity};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CreateOAuth2ClientRequest {
@@ -26,7 +25,6 @@ impl From<CreateOAuth2ClientRequest> for command::CreateOAuth2ClientCommand {
     }
 }
 
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct OAuth2ClientDto {
     pub id: i64,
@@ -36,4 +34,18 @@ pub struct OAuth2ClientDto {
     pub grant_types: Vec<String>,
     pub auth_methods: Vec<String>,
     pub scopes: Vec<String>,
+}
+
+impl From<entity::OAuth2ClientEntity> for OAuth2ClientDto {
+    fn from(value: entity::OAuth2ClientEntity) -> Self {
+        OAuth2ClientDto {
+            id: value.id,
+            name: value.name,
+            client_id: value.client_id,
+            redirect_uris: value.redirect_uris,
+            grant_types: value.grant_types,
+            auth_methods: value.auth_methods,
+            scopes: value.scopes,
+        }
+    }
 }

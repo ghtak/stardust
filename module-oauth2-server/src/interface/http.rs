@@ -5,18 +5,23 @@ use axum::{
     routing::{delete, get, post},
 };
 use module_user::interface::user::AdminUser;
+use stardust_interface::http::ApiResponse;
 
-use crate::interface::{ServiceProvider, dto};
+use crate::{
+    interface::{ServiceProvider, dto},
+    service::OAuth2ClientService,
+};
 
 async fn create_client<T>(
-    State(_): State<Arc<T>>,
+    State(container): State<Arc<T>>,
     AdminUser(_): AdminUser,
-    axum::Json(_): axum::Json<dto::CreateOAuth2ClientRequest>,
-) -> String
+    axum::Json(req): axum::Json<dto::CreateOAuth2ClientRequest>,
+) -> Result<ApiResponse<dto::OAuth2ClientDto>, ApiResponse<()>>
 where
     T: ServiceProvider,
 {
-    unimplemented!()
+    let entity = container.oauth2_client_service().create_client(&req.into()).await?;
+    Ok(ApiResponse::with(entity.into()))
 }
 
 async fn get_clients<T>(State(_): State<Arc<T>>) -> String
@@ -64,7 +69,7 @@ where
 
 pub fn routes<T>(t: Arc<T>) -> axum::Router
 where
-    T: ServiceProvider + module_user::interface::ServiceProvider + 'static,
+    T: ServiceProvider + 'static,
 {
     axum::Router::new()
         .route(

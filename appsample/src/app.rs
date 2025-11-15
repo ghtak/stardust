@@ -7,7 +7,7 @@ pub mod dev_env {
         module_user::interface::container::Container<UserServiceImpl, ApikeyServiceImpl>;
 
     pub type OAuth2ClientServiceImpl =
-        module_oauth2_server::internal::OAuth2ClientServiceImpl;
+        module_oauth2_server::internal::OAuth2ClientServiceImpl<HasherImpl>;
     pub type OAuth2ServerContainerImpl = module_oauth2_server::interface::container::Container<
         UserContaierImpl,
         OAuth2ClientServiceImpl,

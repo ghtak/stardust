@@ -1,19 +1,42 @@
-use crate::{command, entity, service::OAuth2ClientService};
+use std::sync::Arc;
 
-pub struct OAuth2ClientServiceImpl {}
+use crate::{command, entity, infra::client_repo, service::OAuth2ClientService};
 
-impl OAuth2ClientServiceImpl {
-    pub fn new() -> Self {
-        Self {}
+pub struct OAuth2ClientServiceImpl<H> {
+    database: stardust_db::Database,
+    hasher: Arc<H>,
+}
+
+impl<H> OAuth2ClientServiceImpl<H>
+where
+    H: stardust_common::hash::Hasher,
+{
+    pub fn new(database: stardust_db::Database, hasher: Arc<H>) -> Self {
+        Self { database, hasher }
     }
 }
 
 #[async_trait::async_trait]
-impl OAuth2ClientService for OAuth2ClientServiceImpl {
+impl<H> OAuth2ClientService for OAuth2ClientServiceImpl<H>
+where
+    H: stardust_common::hash::Hasher,
+{
     async fn create_client(
         &self,
-        _command: &command::CreateOAuth2ClientCommand,
+        command: &command::CreateOAuth2ClientCommand,
     ) -> stardust_common::Result<entity::OAuth2ClientEntity> {
-        unimplemented!()
+        let client_secret_hash = self.hasher.hash(&command.client_secret)?;
+        let entity = entity::OAuth2ClientEntity {
+            id: 0,
+            name: command.name.clone(),
+            client_id: command.client_id.clone(),
+            client_secret_hash: client_secret_hash,
+            redirect_uris: command.redirect_uris.clone(),
+            grant_types: command.grant_types.clone(),
+            auth_methods: command.auth_methods.clone(),
+            scopes: command.scopes.clone(),
+        };
+        let entity = client_repo::create_client(&mut self.database.pool(), &entity).await?;
+        Ok(entity)
     }
 }
