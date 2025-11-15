@@ -7,7 +7,9 @@ use axum::{
 use stardust_interface::http::ApiResponse;
 use tower_sessions::Session;
 
-use crate::{entity::UserAggregate, interface::ServiceProvider};
+use crate::{command, entity::UserAggregate, interface::ServiceProvider, service::ApiKeyService};
+
+pub const APIKEY_HEADER_NAME: &str = "X-ApiKey";
 
 #[derive(Debug)]
 pub struct AuthUser(pub UserAggregate);
@@ -15,7 +17,7 @@ pub struct AuthUser(pub UserAggregate);
 impl<S> FromRequestParts<Arc<S>> for AuthUser
 where
     S: ServiceProvider + Send + Sync,
-    S::ApiKeyService: 'static
+    S::ApiKeyService: ApiKeyService,
 {
     type Rejection = ApiResponse<()>;
 
@@ -23,6 +25,14 @@ where
         parts: &mut axum::http::request::Parts,
         s: &Arc<S>,
     ) -> Result<Self, Self::Rejection> {
+        if let Some(key_hash) = parts.headers.get(APIKEY_HEADER_NAME).and_then(|h| h.to_str().ok()) {
+            let command = command::FindApiKeyUserCommand {
+                key_hash: key_hash.to_owned(),
+            };
+            if let Some(user) = s.apikey_service().find_user(&command).await? {
+                return Ok(Self(user));
+            }
+        }
         let session = Session::from_request_parts(parts, s)
             .await
             .map_err(|e| ApiResponse::error(e.0, e.1))?;
@@ -36,7 +46,7 @@ where
 impl<S> OptionalFromRequestParts<Arc<S>> for AuthUser
 where
     S: ServiceProvider + Send + Sync,
-    S::ApiKeyService: 'static
+    S::ApiKeyService: ApiKeyService,
 {
     type Rejection = ApiResponse<()>;
 
@@ -66,7 +76,7 @@ pub struct AdminUser(pub UserAggregate);
 impl<S> FromRequestParts<Arc<S>> for AdminUser
 where
     S: ServiceProvider + Send + Sync,
-    S::ApiKeyService: 'static
+    S::ApiKeyService: ApiKeyService,
 {
     type Rejection = ApiResponse<()>;
 

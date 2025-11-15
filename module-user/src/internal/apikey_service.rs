@@ -46,4 +46,11 @@ where
             related: entity,
         })
     }
+
+    async fn find_user(
+            &self,
+            command: &command::FindApiKeyUserCommand,
+        ) -> stardust_common::Result<Option<entity::UserAggregate>> {
+        return apikey_repo::find_user(&mut self.database.pool(), command).await;
+    }
 }

@@ -1,8 +1,10 @@
-use crate::{entity, infra::model, query};
+use crate::{
+    entity,
+    infra::model::{self, UserAccountModel, UserModel},
+    query,
+};
 
-pub async fn create_table(
-    handle: &mut stardust_db::Handle<'_>,
-) -> stardust_common::Result<()> {
+pub async fn create_table(handle: &mut stardust_db::Handle<'_>) -> stardust_common::Result<()> {
     sqlx::query(
         r#"
             create table if not exists stardust_user (
@@ -39,7 +41,6 @@ pub async fn create_table(
     Ok(())
 }
 
-
 pub async fn create_user(
     handle: &mut stardust_db::Handle<'_>,
     user_entity: &entity::UserEntity,
@@ -55,9 +56,7 @@ pub async fn create_user(
         values.push_bind(model.created_at);
         values.push_bind(model.updated_at);
     });
-    builder.push(
-        " RETURNING id, username, email, role, status, created_at, updated_at",
-    );
+    builder.push(" RETURNING id, username, email, role, status, created_at, updated_at");
     let row = builder
         .build_query_as::<crate::infra::model::UserModel>()
         .fetch_one(handle.executor())
@@ -73,18 +72,16 @@ pub async fn create_user_account(
     let mut account_builder = sqlx::QueryBuilder::new(
         "INSERT INTO stardust_user_account (uid, user_id, account_type, password_hash, created_at, updated_at) ",
     );
-    account_builder.push_values(
-        std::iter::once(user_account_entity),
-        |mut values, model| {
-            values.push_bind(&model.uid);
-            values.push_bind(&model.user_id);
-            values.push_bind(model.account_type.to_string());
-            values.push_bind(&model.password_hash);
-            values.push_bind(model.created_at);
-            values.push_bind(model.updated_at);
-        },
-    );
-    account_builder.push(" RETURNING uid, user_id, account_type, password_hash, created_at, updated_at");
+    account_builder.push_values(std::iter::once(user_account_entity), |mut values, model| {
+        values.push_bind(&model.uid);
+        values.push_bind(&model.user_id);
+        values.push_bind(model.account_type.to_string());
+        values.push_bind(&model.password_hash);
+        values.push_bind(model.created_at);
+        values.push_bind(model.updated_at);
+    });
+    account_builder
+        .push(" RETURNING uid, user_id, account_type, password_hash, created_at, updated_at");
     let account_row = account_builder
         .build_query_as::<model::UserAccountModel>()
         .fetch_one(handle.executor())
@@ -97,8 +94,7 @@ pub async fn find_user(
     handle: &mut stardust_db::Handle<'_>,
     query: &query::FindUserQuery<'_>,
 ) -> stardust_common::Result<Option<entity::UserEntity>> {
-    let mut builder =
-        sqlx::QueryBuilder::new("SELECT * FROM stardust_user WHERE 1=1 ");
+    let mut builder = sqlx::QueryBuilder::new("SELECT * FROM stardust_user WHERE 1=1 ");
     if let Some(id) = query.id {
         builder.push(" AND id = ");
         builder.push_bind(id);
@@ -135,9 +131,8 @@ pub async fn find_user_accounts(
     handle: &mut stardust_db::Handle<'_>,
     user_id: i64,
 ) -> stardust_common::Result<Vec<crate::entity::UserAccountEntity>> {
-    let mut builder = sqlx::QueryBuilder::new(
-        "SELECT * FROM stardust_user_account WHERE user_id = ",
-    );
+    let mut builder =
+        sqlx::QueryBuilder::new("SELECT * FROM stardust_user_account WHERE user_id = ");
     builder.push_bind(user_id);
     let rows = builder
         .build_query_as::<crate::infra::model::UserAccountModel>()
@@ -152,20 +147,63 @@ pub async fn find_user_aggregate(
     handle: &mut stardust_db::Handle<'_>,
     query: &crate::query::FindUserQuery<'_>,
 ) -> stardust_common::Result<Option<entity::UserAggregate>> {
-    let Some(user) = find_user(handle, query).await? else {
+    let mut builder = sqlx::QueryBuilder::new(
+        r#"
+        SELECT (u.*) as "inner!: UserModel", (ua.*) as "related!: UserAccountModel"
+        FROM stardust_user u
+        LEFT JOIN stardust_user_account ua ON u.id = ua.user_id
+        WHERE 1=1
+    "#,
+    );
+
+    if let Some(id) = query.id {
+        builder.push(" AND u.id = ");
+        builder.push_bind(id);
+    }
+
+    if let Some(username) = query.username {
+        builder.push(" AND u.username = ");
+        builder.push_bind(username);
+    }
+
+    if let Some(email) = query.email {
+        builder.push(" AND u.email = ");
+        builder.push_bind(email);
+    }
+
+    if let Some(uid) = query.uid {
+        builder.push(" AND ua.uid = ");
+        builder.push_bind(uid);
+    }
+
+    let rows = builder
+        .build_query_as::<stardust_db::With<UserModel, UserAccountModel>>()
+        .fetch_all(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+
+    if rows.is_empty() {
         return Ok(None);
-    };
-    let accounts = find_user_accounts(handle, user.id).await?;
-    Ok(Some(entity::UserAggregate { user, accounts }))
+    }
+
+    let mut aggregate: Option<entity::UserAggregate> = None;
+    for r in rows {
+        let agg = aggregate.get_or_insert_with(|| entity::UserAggregate {
+            user: r.inner.into(),
+            accounts: Vec::new(),
+        });
+
+        agg.accounts.push(r.related.into());
+    }
+
+    Ok(aggregate)
 }
 
 pub async fn save_user_account(
     handle: &mut stardust_db::Handle<'_>,
     user_account_entity: &entity::UserAccountEntity,
 ) -> stardust_common::Result<entity::UserAccountEntity> {
-    let mut builder = sqlx::QueryBuilder::new(
-        "UPDATE stardust_user_account SET password_hash = ",
-    );
+    let mut builder = sqlx::QueryBuilder::new("UPDATE stardust_user_account SET password_hash = ");
     builder.push_bind(&user_account_entity.password_hash);
     builder.push(", updated_at = ");
     builder.push_bind(user_account_entity.updated_at);

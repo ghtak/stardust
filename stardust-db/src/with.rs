@@ -1,6 +1,8 @@
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct With<T1, R1> {
+    #[sqlx(flatten)]
     pub inner: T1,
+    #[sqlx(flatten)]
     pub related: R1,
 }
 

@@ -22,4 +22,9 @@ pub trait ApiKeyService: Sync + Send {
         &self,
         command: &command::CreateApiKeyCommand,
     ) -> impl Future<Output = stardust_common::Result<With<String, entity::ApiKeyEntity>>> + Send;
+
+    fn find_user(
+        &self,
+        command: &command::FindApiKeyUserCommand,
+    ) -> impl Future<Output = stardust_common::Result<Option<entity::UserAggregate>>> + Send;
 }

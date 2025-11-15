@@ -66,3 +66,7 @@ pub struct CreateApiKeyCommand {
     pub user_id: i64,
     pub description: String,
 }
+
+pub struct FindApiKeyUserCommand {
+    pub key_hash: String,
+}

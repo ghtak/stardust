@@ -32,3 +32,8 @@ Content-Type: application/json
 #     "description": "testsample"
 #   }
 # }
+
+###
+# @me
+GET http://localhost:5299/auth/user/me
+X-ApiKey : 53ce97cf782d4795953b1eb52801074f
