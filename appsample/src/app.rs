@@ -6,7 +6,10 @@ pub mod dev_env {
     pub type UserContaierImpl =
         module_user::interface::container::Container<UserServiceImpl, ApikeyServiceImpl>;
 
-    pub type Container = crate::container::Container<UserContaierImpl>;
+
+    pub type OAuth2ServerContainerImpl = module_oauth2_server::interface::container::Container;
+
+    pub type Container = crate::container::Container<UserContaierImpl, OAuth2ServerContainerImpl>;
 }
 
 pub use dev_env::*;

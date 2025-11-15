@@ -35,7 +35,9 @@ async fn build_container() -> Arc<app::Container> {
         user_service.clone(),
         apikey_service.clone(),
     ));
-    let container = app::Container::new(config, database, user_container);
+
+    let oauth2_server_container = Arc::new(app::OAuth2ServerContainerImpl::new());
+    let container = app::Container::new(config, database, user_container, oauth2_server_container);
     Arc::new(container)
 }
 
@@ -99,6 +101,9 @@ pub async fn new_router(ct: Arc<app::Container>) -> axum::Router {
     let router = axum::Router::new()
         .merge(module_user::interface::http::routes(
             ct.user_container.clone(),
+        ))
+        .merge(module_oauth2_server::interface::http::routes(
+            ct.oauth2_server_container.clone(),
         ))
         .layer(stardust_interface::http::session_layer(
             tower_sessions::MemoryStore::default(),
