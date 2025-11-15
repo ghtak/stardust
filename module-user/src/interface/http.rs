@@ -9,9 +9,10 @@ use stardust_interface::http::{ApiResponse, session};
 use tower_sessions::Session;
 
 use crate::{
-    command::CreateApiKeyCommand,
+    command::{self, CreateApiKeyCommand},
     entity,
     interface::{ServiceProvider, dto, user::AuthUser},
+    query,
     service::{ApiKeyService, UserService},
 };
 
@@ -101,24 +102,39 @@ where
 }
 
 async fn get_apikey<T>(
-    State(_): State<Arc<T>>,
-    AuthUser(_): AuthUser,
+    State(container): State<Arc<T>>,
+    AuthUser(user): AuthUser,
 ) -> Result<ApiResponse<Vec<dto::ApiKeyDto>>, ApiResponse<()>>
 where
     T: ServiceProvider,
 {
-    unimplemented!()
+    let result = container
+        .apikey_service()
+        .get_apikeys(&query::GetApiKeysQuery {
+            user_id: user.user.id,
+        })
+        .await?;
+    Ok(ApiResponse::with(
+        result.into_iter().map(|a| a.into()).collect(),
+    ))
 }
 
 async fn deactivate_apikey<T>(
-    State(_): State<Arc<T>>,
-    AuthUser(_): AuthUser,
-    axum::extract::Path(_id): axum::extract::Path<i64>,
-) -> Result<ApiResponse<String>, ApiResponse<()>>
+    State(container): State<Arc<T>>,
+    AuthUser(user): AuthUser,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+) -> Result<ApiResponse<dto::ApiKeyDto>, ApiResponse<()>>
 where
     T: ServiceProvider,
 {
-    unimplemented!()
+    let result = container
+        .apikey_service()
+        .deactivate_apikey(&command::DeactivateApiKeyCommand {
+            apikey_id: id,
+            request_user_id: user.user.id,
+        })
+        .await?;
+    Ok(ApiResponse::with(result.into()))
 }
 
 pub fn routes<T>(t: Arc<T>) -> axum::Router
@@ -135,7 +151,7 @@ where
             get(get_apikey::<T>).post(create_apikey::<T>),
         )
         .route(
-            "/auth/user/apikey/:id",
+            "/auth/user/apikey/{id}",
             get(get_apikey::<T>).delete(deactivate_apikey),
         )
         .with_state(t)

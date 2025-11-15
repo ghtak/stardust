@@ -68,6 +68,7 @@ pub struct CreateApiKeyCommand {
 }
 
 pub struct DeactivateApiKeyCommand {
-    pub id: i64,
+    pub request_user_id: i64,
+    pub apikey_id: i64,
 }
 

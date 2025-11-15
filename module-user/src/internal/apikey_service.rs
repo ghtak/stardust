@@ -56,15 +56,27 @@ where
 
     async fn get_apikeys(
         &self,
-        _query: &query::GetApiKeysQuery,
+        query: &query::GetApiKeysQuery,
     ) -> stardust_common::Result<Vec<entity::ApiKeyEntity>> {
-        unimplemented!()
+        return apikey_repo::get_apikeys(&mut self.database.pool(), &query).await;
     }
 
     async fn deactivate_apikey(
         &self,
-        _command: &command::DeactivateApiKeyCommand,
+        command: &command::DeactivateApiKeyCommand,
     ) -> stardust_common::Result<entity::ApiKeyEntity> {
-        unimplemented!()
+        let result = apikey_repo::get_apikey(&mut self.database.pool(), command.apikey_id).await?;
+        if result.is_none() {
+            return Err(stardust_common::Error::NotFound);
+        }
+        let mut key = result.unwrap();
+        if key.user_id != command.request_user_id {
+            return Err(stardust_common::Error::Forbidden);
+        }
+        if key.deactivated_at.is_some() {
+            return Err(stardust_common::Error::Forbidden);
+        }
+        key.deactivated_at = Some(chrono::Utc::now());
+        apikey_repo::save_apikey(&mut self.database.pool(), &key).await
     }
 }

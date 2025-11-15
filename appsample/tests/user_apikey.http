@@ -37,3 +37,16 @@ Content-Type: application/json
 # @me
 GET http://localhost:5299/auth/user/me
 X-ApiKey : 53ce97cf782d4795953b1eb52801074f
+
+
+###
+# @get apikey
+
+GET http://localhost:5299/auth/user/apikey
+X-ApiKey : 53ce97cf782d4795953b1eb52801074f
+
+###
+# @delete apikey
+
+DELETE http://localhost:5299/auth/user/apikey/1
+X-ApiKey : 53ce97cf782d4795953b1eb52801074f

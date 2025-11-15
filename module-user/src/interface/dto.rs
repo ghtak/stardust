@@ -1,4 +1,4 @@
-use crate::command;
+use crate::{command, entity};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SignupRequest {
@@ -59,8 +59,23 @@ pub struct ApiKeyDto{
     pub id: i64,
     pub prefix: String,
     pub description: String,
-    pub created_at: String,
-    pub updated_at: String,
-    pub last_used_at: String,
-    pub deactivated_at: Option<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub last_used_at: chrono::DateTime<chrono::Utc>,
+    pub deactivated_at: Option<chrono::DateTime<chrono::Utc>>,
 }
+
+impl From<entity::ApiKeyEntity> for ApiKeyDto {
+    fn from(value: entity::ApiKeyEntity) -> Self {
+        ApiKeyDto {
+            id: value.id,
+            prefix: value.prefix,
+            description: value.description,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            last_used_at: value.last_used_at,
+            deactivated_at: value.deactivated_at,
+        }
+    }
+}
+

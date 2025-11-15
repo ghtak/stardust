@@ -1,7 +1,4 @@
-use crate::{
-    entity,
-    infra::model, query,
-};
+use crate::{entity, infra::model, query};
 
 pub async fn create_table(handle: &mut stardust_db::Handle<'_>) -> stardust_common::Result<()> {
     sqlx::query(
@@ -91,4 +88,65 @@ pub async fn find_user(
     }
 
     Ok(aggregate)
+}
+
+pub async fn get_apikeys(
+    handle: &mut stardust_db::Handle<'_>,
+    q: &query::GetApiKeysQuery,
+) -> stardust_common::Result<Vec<entity::ApiKeyEntity>> {
+    let mut builder = sqlx::QueryBuilder::new("SELECT * FROM stardust_apikey WHERE user_id = ");
+    builder.push_bind(q.user_id);
+
+    let rows = builder
+        .build_query_as::<model::ApiKeyModel>()
+        .fetch_all(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+
+    return Ok(rows.into_iter().map(Into::into).collect());
+}
+
+pub async fn get_apikey(
+    handle: &mut stardust_db::Handle<'_>,
+    id: i64,
+) -> stardust_common::Result<Option<entity::ApiKeyEntity>> {
+    let mut builder = sqlx::QueryBuilder::new("SELECT * FROM stardust_apikey WHERE id = ");
+    builder.push_bind(id);
+
+    let row = builder
+        .build_query_as::<model::ApiKeyModel>()
+        .fetch_optional(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+
+    Ok(row.map(Into::into))
+}
+
+pub async fn save_apikey(
+    handle: &mut stardust_db::Handle<'_>,
+    entity: &entity::ApiKeyEntity,
+) -> stardust_common::Result<entity::ApiKeyEntity> {
+    let mut builder = sqlx::QueryBuilder::new("UPDATE stardust_apikey SET ");
+
+    builder.push("description = ");
+    builder.push_bind(&entity.description);
+    builder.push(", updated_at = ");
+    builder.push_bind(entity.updated_at);
+
+    if let Some(ref deactivated_at) = entity.deactivated_at {
+        builder.push(", deactivated_at = ");
+        builder.push_bind(deactivated_at);
+    }
+
+    builder.push(" WHERE id = ");
+    builder.push_bind(entity.id);
+    builder.push(" RETURNING *");
+
+    let row = builder
+        .build_query_as::<model::ApiKeyModel>()
+        .fetch_one(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+
+    Ok(row.into())
 }
