@@ -30,7 +30,11 @@ async fn build_container() -> Arc<app::Container> {
         database.clone(),
         hasher.clone(),
     ));
-    let container = app::Container::new(config, database, user_service, apikey_service);
+    let user_container = Arc::new(app::UserContaierImpl::new(
+        user_service.clone(),
+        apikey_service.clone(),
+    ));
+    let container = app::Container::new(config, database, user_container);
     Arc::new(container)
 }
 
@@ -40,7 +44,12 @@ async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
         Err(e) => eprintln!("Migration failed: {}", e),
     };
 
-    match module_user::infra::migration::migrate(ct.database.clone(), ct.user_service()).await {
+    match module_user::infra::migration::migrate(
+        ct.database.clone(),
+        ct.user_container.user_service(),
+    )
+    .await
+    {
         Ok(_) => println!("User module migration successful"),
         Err(e) => eprintln!("User module migration failed: {}", e),
     }
@@ -81,7 +90,9 @@ pub async fn map_response(request: Request<Body>, next: Next) -> impl IntoRespon
 
 pub async fn new_router(ct: Arc<app::Container>) -> axum::Router {
     let router = axum::Router::new()
-        .merge(module_user::interface::http::routes(ct.clone()))
+        .merge(module_user::interface::http::routes(
+            ct.user_container.clone(),
+        ))
         .layer(stardust_interface::http::session_layer(
             tower_sessions::MemoryStore::default(),
         ))

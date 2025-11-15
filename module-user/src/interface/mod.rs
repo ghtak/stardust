@@ -1,6 +1,7 @@
 pub mod dto;
 pub mod http;
 pub mod user;
+pub mod container;
 
 use std::sync::Arc;
 
