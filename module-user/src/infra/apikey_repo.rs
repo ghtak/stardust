@@ -1,3 +1,5 @@
+use crate::entity;
+
 pub async fn create_table(handle: &mut stardust_db::Handle<'_>) -> stardust_common::Result<()> {
     sqlx::query(
         r#"
@@ -18,4 +20,32 @@ pub async fn create_table(handle: &mut stardust_db::Handle<'_>) -> stardust_comm
     .await
     .map_err(stardust_db::into_error)?;
     Ok(())
+}
+
+pub async fn create_apikey(
+    handle: &mut stardust_db::Handle<'_>,
+    entity: &entity::ApiKeyEntity,
+) -> stardust_common::Result<entity::ApiKeyEntity> {
+    let mut builder = sqlx::QueryBuilder::new(
+        r#"INSERT INTO stardust_apikey (user_id, key_hash, prefix, description,
+        created_at, updated_at) "#,
+    );
+    builder.push_values(std::iter::once(entity), |mut values, model| {
+        values.push_bind(&model.user_id);
+        values.push_bind(&model.key_hash);
+        values.push_bind(&model.prefix);
+        values.push_bind(&model.description);
+        values.push_bind(model.created_at);
+        values.push_bind(model.updated_at);
+    });
+    builder.push(
+        r#" RETURNING id, user_id, key_hash, prefix, description,
+        created_at, updated_at, last_used_at, deactivated_at"#,
+    );
+    let row = builder
+        .build_query_as::<crate::infra::model::ApiKeyModel>()
+        .fetch_one(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+    Ok(row.into())
 }

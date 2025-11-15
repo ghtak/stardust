@@ -16,10 +16,7 @@ impl From<UserModel> for crate::entity::UserEntity {
             username: model.username,
             email: model.email,
             role: model.role.parse().unwrap_or(crate::entity::Role::User),
-            status: model
-                .status
-                .parse()
-                .unwrap_or(crate::entity::Status::Inactive),
+            status: model.status.parse().unwrap_or(crate::entity::Status::Inactive),
             created_at: model.created_at,
             updated_at: model.updated_at,
         }
@@ -41,13 +38,39 @@ impl From<UserAccountModel> for crate::entity::UserAccountEntity {
         Self {
             uid: model.uid,
             user_id: model.user_id,
-            account_type: model
-                .account_type
-                .parse()
-                .unwrap_or(crate::entity::AccountType::Local),
+            account_type: model.account_type.parse().unwrap_or(crate::entity::AccountType::Local),
             password_hash: model.password_hash,
             created_at: model.created_at,
             updated_at: model.updated_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
+pub struct ApiKeyModel {
+    pub id: i64,
+    pub user_id: i64,
+    pub key_hash: String,
+    pub prefix: String,
+    pub description: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub last_used_at: chrono::DateTime<chrono::Utc>,
+    pub deactivated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+impl From<ApiKeyModel> for crate::entity::ApiKeyEntity {
+    fn from(model: ApiKeyModel) -> Self {
+        Self {
+            id: model.id,
+            user_id: model.user_id,
+            key_hash: model.key_hash,
+            prefix: model.prefix,
+            description: model.description,
+            created_at: model.created_at,
+            updated_at: model.updated_at,
+            last_used_at: model.last_used_at,
+            deactivated_at: model.deactivated_at,
         }
     }
 }

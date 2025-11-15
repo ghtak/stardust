@@ -9,7 +9,10 @@ use stardust_interface::http::{ApiResponse, session};
 use tower_sessions::Session;
 
 use crate::{
-    command::CreateApiKeyCommand, entity, interface::{ServiceProvider, dto, user::AuthUser}, service::UserService
+    command::CreateApiKeyCommand,
+    entity,
+    interface::{ServiceProvider, dto, user::AuthUser},
+    service::{ApiKeyService, UserService},
 };
 
 async fn signup<T>(
@@ -78,18 +81,23 @@ where
 }
 
 async fn create_apikey<T>(
-    State(_): State<Arc<T>>,
+    State(container): State<Arc<T>>,
     AuthUser(user): AuthUser,
     axum::Json(req): axum::Json<dto::CreateApiKeyRequest>,
 ) -> Result<ApiResponse<dto::CreateApiKeyResponse>, ApiResponse<()>>
 where
     T: ServiceProvider,
 {
-    let _ = CreateApiKeyCommand{
+    let command = CreateApiKeyCommand {
         user_id: user.user.id,
         description: req.description,
     };
-    unimplemented!()
+    let result = container.apikey_service().create_apikey(&command).await?;
+    Ok(ApiResponse::with(dto::CreateApiKeyResponse {
+        id: result.related.id,
+        key: result.inner,
+        description: result.related.description,
+    }))
 }
 
 async fn get_apikey<T>(

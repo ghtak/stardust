@@ -44,6 +44,19 @@ pub struct UserAggregate {
     pub accounts: Vec<UserAccountEntity>,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ApiKeyEntity {
+    pub id: i64,
+    pub user_id: i64,
+    pub key_hash: String,
+    pub prefix: String,
+    pub description: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub last_used_at: chrono::DateTime<chrono::Utc>,
+    pub deactivated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
 impl std::fmt::Display for AccountType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
