@@ -57,28 +57,9 @@ pub async fn find_user(
     let mut builder = sqlx::QueryBuilder::new(
         r#"
         select
-            sa.id as apikey_id,
-            sa.user_id as apikey_user_id,
-            sa.key_hash as apikey_key_hash,
-            sa.prefix as apikey_prefix,
-            sa.description as apikey_description,
-            sa.created_at as apikey_created_at,
-            sa.updated_at as apikey_updated_at,
-            sa.last_used_at as apikey_last_used_at,
-            sa.deactivated_at as apikey_deactivated_at,
-            u.id as user_id,
-            u.username as user_username,
-            u.email as user_email,
-            u.role as user_role,
-            u.status as user_status,
-            u.created_at as user_created_at,
-            u.updated_at as user_updated_at,
-            ua.uid as account_uid,
-            ua.user_id as account_user_id,
-            ua.account_type as account_account_type,
-            ua.password_hash as account_password_hash,
-            ua.created_at as account_created_at,
-            ua.updated_at as account_updated_at
+            row_to_json(sa) as apikey_json,
+            row_to_json(u) as user_json,
+            row_to_json(ua) as account_json
         from stardust_apikey sa
         left join stardust_user u on sa.user_id  = u.id
         left join stardust_user_account ua on u.id = ua.user_id
@@ -101,14 +82,14 @@ pub async fn find_user(
     for r in rows {
         tracing::info!("row {:?}", &r);
         if apikey.is_none() {
-            apikey = Some(r.apikey_entity());
+            apikey = Some(r.apikey.into());
         }
         let agg = aggregate.get_or_insert_with(|| entity::UserAggregate {
-            user: r.user_entity(),
+            user: r.user.into(),
             accounts: Vec::new(),
         });
 
-        agg.accounts.push(r.account_entity());
+        agg.accounts.push(r.account.into());
     }
 
     if apikey.is_none() {

@@ -134,47 +134,10 @@ pub async fn find_user(
     let mut builder = sqlx::QueryBuilder::new(
         r#"
         select
-            oa.id as authorization_id,
-            oa.oauth2_client_id as authorization_oauth2_client_id,
-            oa.principal_id as authorization_principal_id,
-            oa.grant_type as authorization_grant_type,
-            oa.scopes as authorization_scopes,
-            oa.state as authorization_state,
-            oa.auth_code_value as authorization_auth_code_value,
-            oa.auth_code_issued_at as authorization_auth_code_issued_at,
-            oa.auth_code_expires_at as authorization_auth_code_expires_at,
-            oa.access_token_value as authorization_access_token_value,
-            oa.access_token_issued_at as authorization_access_token_issued_at,
-            oa.access_token_expires_at as authorization_access_token_expires_at,
-            oa.refresh_token_hash as authorization_refresh_token_hash,
-            oa.refresh_token_issued_at as authorization_refresh_token_issued_at,
-            oa.refresh_token_expires_at as authorization_refresh_token_expires_at,
-
-            c.id as client_id,
-            c.client_id as client_client_id,
-            c.client_secret_hash as client_client_secret_hash,
-            c.name as client_name,
-            c.redirect_uris as client_redirect_uris,
-            c.grant_types as client_grant_types,
-            c.auth_methods as client_auth_methods,
-            c.scopes as client_scopes,
-            c.token_settings as client_token_settings,
-
-            u.id as user_id,
-            u.username as user_username,
-            u.email as user_email,
-            u.role as user_role,
-            u.status as user_status,
-            u.created_at as user_created_at,
-            u.updated_at as user_updated_at,
-
-            ua.uid as account_uid,
-            ua.user_id as account_user_id,
-            ua.account_type as account_account_type,
-            ua.password_hash as account_password_hash,
-            ua.created_at as account_created_at,
-            ua.updated_at as account_updated_at
-
+            row_to_json(oa) as authorization_json,
+            row_to_json(c) as client_json,
+            row_to_json(u) as user_json,
+            row_to_json(ua) as account_json
         from oauth2_authorization oa
         left join stardust_user u on oa.principal_id = u.id
         left join stardust_user_account ua on oa.principal_id = ua.user_id
@@ -200,16 +163,16 @@ pub async fn find_user(
 
     for r in rows {
         if authorization.is_none() {
-            authorization = Some(r.authorization_entity());
+            authorization = Some(r.authorization.into());
         }
         if client.is_none() {
-            client = Some(r.client_entity());
+            client = Some(r.client.into());
         }
         let agg = user_aggregate.get_or_insert_with(|| module_user::entity::UserAggregate {
-            user: r.user_entity(),
+            user: r.user.into(),
             accounts: Vec::new(),
         });
-        agg.accounts.push(r.account_entity());
+        agg.accounts.push(r.account.into());
     }
     if authorization.is_none() {
         return Ok(None);
