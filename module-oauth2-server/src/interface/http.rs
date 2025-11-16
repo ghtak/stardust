@@ -1,17 +1,18 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
-    extract::State,
+    extract::{Query, State},
+    response::{IntoResponse, Redirect},
     routing::{delete, get, post},
 };
-use module_user::interface::user::AdminUser;
+use module_user::interface::user::{AdminUser, AuthUser};
 use stardust_interface::http::ApiResponse;
 
 use crate::{
     command,
     interface::{ServiceProvider, dto},
     query,
-    service::OAuth2ClientService,
+    service::{OAuth2AuthorizationService, OAuth2ClientService},
 };
 
 async fn create_client<T>(
@@ -58,20 +59,36 @@ where
     }
 }
 
-async fn oauth2_authorize<T>(State(ct): State<Arc<T>>) -> String
+async fn oauth2_authorize<T>(
+    State(ct): State<Arc<T>>,
+    Query(req): Query<dto::OAuth2AuthorizeRequest>,
+    user: Option<AuthUser>,
+) -> Result<impl IntoResponse, ApiResponse<()>>
 where
     T: ServiceProvider,
 {
-    let _ = ct.oauth2_authorization_service();
-    "".into()
-}
+    let Some(user) = user else {
+        let _ = ct.oauth2_authorization_service().verify(&req.as_verify_command()).await?;
+        let callback_url = format!("/oauth2/authorize?{}", req.as_params());
+        let redirect_url = format!(
+            "/oauth2/login.html?callback={}",
+            urlencoding::encode(&callback_url)
+        );
+        return Ok(Redirect::to(&redirect_url).into_response());
+    };
 
-async fn oauth2_login<T>(State(ct): State<Arc<T>>) -> String
-where
-    T: ServiceProvider,
-{
-    let _ = ct.oauth2_authorization_service();
-    "".into()
+    let entity = ct
+        .oauth2_authorization_service()
+        .authorize(&command::OAuth2AuthorizeCommand {
+            principal: &user,
+            verify_command: &req.as_verify_command(),
+        })
+        .await?;
+    let redirect_url = format!(
+        "{}?code={}&state={}",
+        req.redirect_uri, entity.auth_code_value, req.state
+    );
+    Ok(Redirect::to(&redirect_url).into_response())
 }
 
 async fn oauth2_token<T>(State(ct): State<Arc<T>>) -> String
@@ -90,6 +107,18 @@ where
     "".into()
 }
 
+async fn oauth2_testcallback<T>(
+    State(_): State<Arc<T>>,
+    Query(req): Query<HashMap<String, String>>,
+) -> String
+where
+    T: ServiceProvider,
+{
+    let kvstring =
+        req.into_iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<_>>().join("&");
+    kvstring
+}
+
 pub fn routes<T>(t: Arc<T>) -> axum::Router
 where
     T: ServiceProvider + 'static,
@@ -101,8 +130,8 @@ where
         )
         .route("/oauth2/client/{id}", delete(delete_client::<T>))
         .route("/oauth2/authorize", get(oauth2_authorize::<T>))
-        .route("/oauth2/login", get(oauth2_login::<T>))
         .route("/oauth2/token", post(oauth2_token::<T>))
         .route("/oauth2/me", get(oauth2_me::<T>))
+        .route("/oauth2/testcallback", get(oauth2_testcallback::<T>))
         .with_state(t)
 }

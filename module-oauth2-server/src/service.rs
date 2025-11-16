@@ -19,4 +19,15 @@ pub trait OAuth2ClientService: Sync + Send {
 }
 
 #[async_trait::async_trait]
-pub trait OAuth2AuthorizationService: Sync + Send {}
+pub trait OAuth2AuthorizationService: Sync + Send {
+    async fn verify(
+        &self,
+        command: &command::OAuth2VerifyCommand<'_>,
+    ) -> stardust_common::Result<entity::OAuth2ClientEntity>;
+
+    async fn authorize(
+        &self,
+        command: &command::OAuth2AuthorizeCommand<'_>,
+    ) -> stardust_common::Result<entity::OAuth2AuthorizationEntity>;
+
+}

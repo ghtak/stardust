@@ -30,3 +30,44 @@ impl From<OAuth2ClientModel> for entity::OAuth2ClientEntity {
         }
     }
 }
+
+#[derive(sqlx::FromRow)]
+pub struct OAuth2AuthorizationModel {
+    id: i64,
+    oauth2_client_id: i64,
+    principal_id: i64,
+    grant_type: String,
+    scopes: String,
+    state: String,
+    auth_code_value: String,
+    auth_code_issued_at: chrono::DateTime<chrono::Utc>,
+    auth_code_expires_at: chrono::DateTime<chrono::Utc>,
+    access_token_value: String,
+    access_token_issued_at: chrono::DateTime<chrono::Utc>,
+    access_token_expires_at: chrono::DateTime<chrono::Utc>,
+    refresh_token_hash: String,
+    refresh_token_issued_at: chrono::DateTime<chrono::Utc>,
+    refresh_token_expires_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl From<OAuth2AuthorizationModel> for entity::OAuth2AuthorizationEntity {
+    fn from(row: OAuth2AuthorizationModel) -> Self {
+        Self {
+            id: row.id,
+            oauth2_client_id: row.oauth2_client_id,
+            principal_id: row.principal_id,
+            grant_type: row.grant_type,
+            scope: row.scopes,
+            state: row.state,
+            auth_code_value: row.auth_code_value,
+            auth_code_issued_at: row.auth_code_issued_at,
+            auth_code_expires_at: row.auth_code_expires_at,
+            access_token_value: row.access_token_value,
+            access_token_issued_at: row.access_token_issued_at,
+            access_token_expires_at: row.access_token_expires_at,
+            refresh_token_hash: row.refresh_token_hash,
+            refresh_token_issued_at: row.refresh_token_issued_at,
+            refresh_token_expires_at: row.refresh_token_expires_at,
+        }
+    }
+}

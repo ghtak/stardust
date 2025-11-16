@@ -10,7 +10,7 @@ X-ApiKey : 53ce97cf782d4795953b1eb52801074f
     "client_id": "client_id",
     "client_secret": "client_secret",
     "name": "client_name",
-    "redirect_uris": ["http://localhost:5299/callback"],
+    "redirect_uris": ["http://localhost:5299/oauth2/testcallback"],
     "grant_types": ["authorization_code", "refresh_token"],
     "auth_methods": ["client_secret_basic"],
     "scopes": ["read", "write"]
@@ -27,5 +27,8 @@ X-ApiKey : 53ce97cf782d4795953b1eb52801074f
 ###
 # @oauth2 delete
 
-DELETE http://localhost:5299/oauth2/client/1
+DELETE http://localhost:5299/oauth2/client/3
 X-ApiKey : 53ce97cf782d4795953b1eb52801074f
+
+
+# http://localhost:5299/oauth2/authorize?client_id=client_id&response_type=code&redirect_uri=http://localhost:5299/oauth2/testcallback&scope=write&state=xyz

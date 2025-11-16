@@ -49,3 +49,40 @@ impl From<entity::OAuth2ClientEntity> for OAuth2ClientDto {
         }
     }
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct OAuth2AuthorizeRequest {
+    pub response_type: String,
+    pub client_id: String,
+    pub redirect_uri: String,
+    pub scope: String,
+    pub state: String,
+}
+
+impl OAuth2AuthorizeRequest{
+    pub fn as_verify_command(&self) -> command::OAuth2VerifyCommand<'_> {
+        command::OAuth2VerifyCommand {
+            response_type: &self.response_type,
+            client_id: &self.client_id,
+            redirect_uri: &self.redirect_uri,
+            scope: &self.scope,
+            state: &self.state,
+        }
+    }
+
+    pub fn as_params(self) -> String {
+        let params = [
+            ("response_type", self.response_type.as_str()),
+            ("client_id", self.client_id.as_str()),
+            ("redirect_uri", self.redirect_uri.as_str()),
+            ("scope", self.scope.as_str()),
+            ("state", self.state.as_str()),
+        ];
+        params
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect::<Vec<String>>()
+            .join("&")
+    }
+}
+

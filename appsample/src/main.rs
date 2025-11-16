@@ -43,6 +43,7 @@ async fn build_container() -> Arc<app::Container> {
     let oauth2_authorization_service = Arc::new(app::OAuth2AuthorizationServiceImpl::new(
         database.clone(),
         hasher.clone(),
+        oauth2_client_service.clone(),
     ));
     let oauth2_server_container = Arc::new(app::OAuth2ServerContainerImpl::new(
         user_container.clone(),
