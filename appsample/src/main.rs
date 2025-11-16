@@ -81,29 +81,30 @@ async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
 pub async fn map_response(request: Request<Body>, next: Next) -> impl IntoResponse {
     let response = next.run(request).await;
     match response.status() {
-        StatusCode::UNPROCESSABLE_ENTITY if !is_json_content(response.headers()) => {
-            let (mut parts, body) = response.into_parts();
-            let bodystr = into_string(body).await.unwrap_or_else(|e| {
-                tracing::warn!("Failed to read response body: {}", e);
-                String::new()
-            });
-            let content = ApiResponse::error(StatusCode::UNPROCESSABLE_ENTITY, bodystr)
-                .into_json_string()
-                .unwrap_or_else(|e| {
-                    tracing::warn!("Failed to serialize error response: {}", e);
-                    String::from(r#"{"code":422,"message":"Unprocessable Entity"}"#)
+        s if s == StatusCode::UNPROCESSABLE_ENTITY || s == StatusCode::UNSUPPORTED_MEDIA_TYPE => {
+            if !is_json_content(response.headers()) {
+                let (mut parts, body) = response.into_parts();
+                let bodystr = into_string(body).await.unwrap_or_else(|e| {
+                    tracing::warn!("Failed to read response body: {}", e);
+                    String::new()
                 });
-            parts.headers.extend([
-                (
-                    header::CONTENT_TYPE,
-                    HeaderValue::from_static("application/json"),
-                ),
-                (
-                    header::CONTENT_LENGTH,
-                    HeaderValue::from(content.len() as u64),
-                ),
-            ]);
-            return Response::from_parts(parts, Body::from(content));
+                let content =
+                    ApiResponse::error(s, bodystr).into_json_string().unwrap_or_else(|e| {
+                        tracing::warn!("Failed to serialize error response: {}", e);
+                        String::from(r#"{"code":422,"message":"Unprocessable Entity"}"#)
+                    });
+                parts.headers.extend([
+                    (
+                        header::CONTENT_TYPE,
+                        HeaderValue::from_static("application/json"),
+                    ),
+                    (
+                        header::CONTENT_LENGTH,
+                        HeaderValue::from(content.len() as u64),
+                    ),
+                ]);
+                return Response::from_parts(parts, Body::from(content));
+            }
         }
         _ => {}
     }
