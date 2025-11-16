@@ -8,7 +8,10 @@ use module_user::interface::user::AdminUser;
 use stardust_interface::http::ApiResponse;
 
 use crate::{
-    interface::{ServiceProvider, dto}, query, service::OAuth2ClientService
+    command,
+    interface::{ServiceProvider, dto},
+    query,
+    service::OAuth2ClientService,
 };
 
 async fn create_client<T>(
@@ -32,20 +35,27 @@ where
 {
     let clients = ct
         .oauth2_client_service()
-        .find_clients(&query::FindOAuth2ClientQuery{
-            client_id: None
-        })
+        .find_clients(&query::FindOAuth2ClientQuery { client_id: None })
         .await?;
     Ok(ApiResponse::with(
         clients.into_iter().map(|c| c.into()).collect(),
     ))
 }
 
-async fn delete_client<T>(State(_): State<Arc<T>>) -> String
+async fn delete_client<T>(
+    State(ct): State<Arc<T>>,
+    AdminUser(_): AdminUser,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+) -> ApiResponse<()>
 where
     T: ServiceProvider,
 {
-    unimplemented!()
+    let result =
+        ct.oauth2_client_service().delete_client(&command::DeleteOAuth2ClientCommand { id }).await;
+    match result {
+        Ok(_) => ApiResponse::ok(),
+        Err(e) => ApiResponse::from(e),
+    }
 }
 
 async fn oauth2_authorize<T>(State(_): State<Arc<T>>) -> String

@@ -75,3 +75,13 @@ pub async fn find_clients(
 
     Ok(rows.into_iter().map(Into::into).collect())
 }
+
+pub async fn delete_client(
+    handle: &mut Handle<'_>,
+    command: &crate::command::DeleteOAuth2ClientCommand,
+) -> stardust_common::Result<()> {
+    let mut querybuilder = sqlx::QueryBuilder::new("DELETE FROM oauth2_client where id = ");
+    querybuilder.push_bind(command.id);
+    querybuilder.build().execute(handle.executor()).await.map_err(stardust_db::into_error)?;
+    Ok(())
+}

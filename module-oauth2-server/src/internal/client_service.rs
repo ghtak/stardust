@@ -46,4 +46,12 @@ where
     ) -> stardust_common::Result<Vec<entity::OAuth2ClientEntity>>{
         client_repo::find_clients(&mut self.database.pool(), &query).await
     }
+
+    async fn delete_client(
+        &self,
+        command: &command::DeleteOAuth2ClientCommand,
+    ) -> stardust_common::Result<()>
+    {
+        client_repo::delete_client(&mut self.database.pool(), &command).await
+    }
 }

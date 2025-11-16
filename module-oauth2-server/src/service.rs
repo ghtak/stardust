@@ -11,4 +11,9 @@ pub trait OAuth2ClientService : Sync + Send{
         &self,
         query: &query::FindOAuth2ClientQuery<'_>,
     ) -> stardust_common::Result<Vec<entity::OAuth2ClientEntity>>;
+
+    async fn delete_client(
+        &self,
+        command: &command::DeleteOAuth2ClientCommand,
+    ) -> stardust_common::Result<()>;
 }

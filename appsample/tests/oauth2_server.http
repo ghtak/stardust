@@ -22,3 +22,10 @@ X-ApiKey : 53ce97cf782d4795953b1eb52801074f
 
 GET http://localhost:5299/oauth2/client
 X-ApiKey : 53ce97cf782d4795953b1eb52801074f
+
+
+###
+# @oauth2 delete
+
+DELETE http://localhost:5299/oauth2/client/1
+X-ApiKey : 53ce97cf782d4795953b1eb52801074f

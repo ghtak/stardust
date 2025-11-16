@@ -8,3 +8,8 @@ pub struct CreateOAuth2ClientCommand {
     pub auth_methods: Vec<String>,
     pub scopes: Vec<String>,
 }
+
+pub struct DeleteOAuth2ClientCommand{
+    pub id: i64,
+}
+
