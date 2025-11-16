@@ -19,18 +19,10 @@ fn init_layer<S>(
     S: Subscriber + for<'a> LookupSpan<'a> + Sync + Send + 'static,
 {
     match format {
-        LoggingFormat::Full => {
-            layred.with(fmt::layer().with_writer(writer)).init()
-        }
-        LoggingFormat::Compact => {
-            layred.with(fmt::layer().with_writer(writer).compact()).init()
-        }
-        LoggingFormat::Pretty => {
-            layred.with(fmt::layer().with_writer(writer).pretty()).init()
-        }
-        LoggingFormat::Json => {
-            layred.with(fmt::layer().with_writer(writer).json()).init()
-        }
+        LoggingFormat::Full => layred.with(fmt::layer().with_writer(writer)).init(),
+        LoggingFormat::Compact => layred.with(fmt::layer().with_writer(writer).compact()).init(),
+        LoggingFormat::Pretty => layred.with(fmt::layer().with_writer(writer).pretty()).init(),
+        LoggingFormat::Json => layred.with(fmt::layer().with_writer(writer).json()).init(),
     }
 }
 
@@ -71,9 +63,8 @@ pub fn init(logging_config: &LoggingConfig) {
     LOGGING_INIT.get_or_init(|| {
         let layered = tracing_subscriber::registry().with(
             // RUST_LOG 환경 변수 확인
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                EnvFilter::new(logging_config.filter.as_str())
-            }),
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| EnvFilter::new(logging_config.filter.as_str())),
         );
         let (console, console_guard) =
             tracing_appender::non_blocking::NonBlockingBuilder::default()
@@ -93,13 +84,15 @@ pub fn init(logging_config: &LoggingConfig) {
                         .lossy(true) // drop if buffer full
                         .finish(daily(
                             file_config.directory.as_str(),
-                            file_config.filename.as_str()
+                            file_config.filename.as_str(),
                         ));
 
                 init_layers(
                     layered,
-                    &logging_config.format, console,
-                    &file_config.format, file,
+                    &logging_config.format,
+                    console,
+                    &file_config.format,
+                    file,
                 );
                 vec![console_guard, file_guard]
             }

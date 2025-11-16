@@ -85,7 +85,11 @@ where
         let _account_entity =
             user_repo::create_user_account(&mut handle, &user_account_entity).await?;
         handle.commit().await?;
-        stardust_core::audit(user_entity.id, "user.created", serde_json::json!(user_entity));
+        stardust_core::audit(
+            user_entity.id,
+            "user.created",
+            serde_json::json!(user_entity),
+        );
         Ok(entity::UserAggregate {
             user: user_entity,
             accounts: vec![user_account_entity],

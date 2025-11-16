@@ -25,9 +25,7 @@ impl From<PathRejection> for ApiError {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
-            ApiError::ValidationError(e) => {
-                (StatusCode::BAD_REQUEST, e.to_string())
-            }
+            ApiError::ValidationError(e) => (StatusCode::BAD_REQUEST, e.to_string()),
         };
         (status, error_message).into_response()
     }

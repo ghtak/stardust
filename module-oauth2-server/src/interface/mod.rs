@@ -4,8 +4,8 @@ use crate::service::{OAuth2AuthorizationService, OAuth2ClientService};
 
 pub mod container;
 pub mod dto;
-pub mod http;
 pub mod extract;
+pub mod http;
 
 pub trait ServiceProvider: module_user::interface::ServiceProvider + Sync + Send {
     type OAuth2ClientService: OAuth2ClientService;

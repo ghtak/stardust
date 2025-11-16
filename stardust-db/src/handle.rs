@@ -21,18 +21,14 @@ impl<'c> Handle<'c> {
 
     pub async fn commit(self) -> Result<(), stardust_common::Error> {
         match self {
-            Handle::Transaction(tx) => {
-                tx.commit().await.map_err(crate::into_error)
-            }
+            Handle::Transaction(tx) => tx.commit().await.map_err(crate::into_error),
             _ => Ok(()),
         }
     }
 
     pub async fn rollback(self) -> Result<(), stardust_common::Error> {
         match self {
-            Handle::Transaction(tx) => {
-                tx.rollback().await.map_err(crate::into_error)
-            }
+            Handle::Transaction(tx) => tx.rollback().await.map_err(crate::into_error),
             _ => Ok(()),
         }
     }
@@ -67,10 +63,7 @@ impl<'h, 'c> sqlx::Executor<'h> for Executor<'h, 'c> {
     fn fetch_optional<'e, 'q: 'e, E>(
         self,
         query: E,
-    ) -> BoxFuture<
-        'e,
-        Result<Option<<Self::Database as sqlx::Database>::Row>, sqlx::Error>,
-    >
+    ) -> BoxFuture<'e, Result<Option<<Self::Database as sqlx::Database>::Row>, sqlx::Error>>
     where
         'h: 'e,
         E: 'q + sqlx::Execute<'q, Self::Database>,
@@ -85,10 +78,7 @@ impl<'h, 'c> sqlx::Executor<'h> for Executor<'h, 'c> {
         self,
         sql: &'q str,
         parameters: &'e [<Self::Database as sqlx::Database>::TypeInfo],
-    ) -> BoxFuture<
-        'e,
-        Result<<Self::Database as sqlx::Database>::Statement<'q>, sqlx::Error>,
-    >
+    ) -> BoxFuture<'e, Result<<Self::Database as sqlx::Database>::Statement<'q>, sqlx::Error>>
     where
         'h: 'e,
     {
@@ -119,13 +109,9 @@ mod tests {
 
     use super::*;
 
-    async fn accept_handle(
-        handle: &mut Handle<'_>,
-    ) -> Result<i32, sqlx::Error> {
-        let row: (i32,) =
-            sqlx::query_as("SELECT 1").fetch_one(handle.executor()).await?;
-        let row2: (i32,) =
-            sqlx::query_as("SELECT 2").fetch_one(handle.executor()).await?;
+    async fn accept_handle(handle: &mut Handle<'_>) -> Result<i32, sqlx::Error> {
+        let row: (i32,) = sqlx::query_as("SELECT 1").fetch_one(handle.executor()).await?;
+        let row2: (i32,) = sqlx::query_as("SELECT 2").fetch_one(handle.executor()).await?;
         Ok(row.0 + row2.0)
     }
 
@@ -156,24 +142,16 @@ mod tests {
 
     #[async_trait::async_trait]
     trait Selector {
-        async fn select(
-            &self,
-            handle: &mut Handle<'_>,
-        ) -> Result<i32, sqlx::Error>;
+        async fn select(&self, handle: &mut Handle<'_>) -> Result<i32, sqlx::Error>;
     }
 
     pub struct SelectorImpl;
 
     #[async_trait::async_trait]
     impl Selector for SelectorImpl {
-        async fn select(
-            &self,
-            handle: &mut Handle<'_>,
-        ) -> Result<i32, sqlx::Error> {
-            let row: (i32,) =
-                sqlx::query_as("SELECT 1").fetch_one(handle.executor()).await?;
-            let row2: (i32,) =
-                sqlx::query_as("SELECT 2").fetch_one(handle.executor()).await?;
+        async fn select(&self, handle: &mut Handle<'_>) -> Result<i32, sqlx::Error> {
+            let row: (i32,) = sqlx::query_as("SELECT 1").fetch_one(handle.executor()).await?;
+            let row2: (i32,) = sqlx::query_as("SELECT 2").fetch_one(handle.executor()).await?;
             Ok(row.0 + row2.0)
         }
     }

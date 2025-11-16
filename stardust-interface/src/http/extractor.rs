@@ -20,10 +20,7 @@ where
 {
     type Rejection = E;
 
-    async fn from_request(
-        req: Request,
-        state: &S,
-    ) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         match axum::Json::<T>::from_request(req, state).await {
             Ok(value) => Ok(Self(value.0, PhantomData)),
             Err(rejection) => Err(rejection.into()),
@@ -49,10 +46,7 @@ where
 {
     type Rejection = E;
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &S,
-    ) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         match axum::extract::Path::<T>::from_request_parts(parts, state).await {
             Ok(value) => Ok(Self(value.0, PhantomData)),
             Err(rejection) => Err(rejection.into()),
@@ -68,15 +62,14 @@ impl<T, E> Deref for Path<T, E> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use axum::{
+        Router,
         body::Body,
         http::{Request, StatusCode},
         response::Response,
         routing::{get, post},
-        Router,
     };
     use serde::{Deserialize, Serialize};
     use tower::ServiceExt;
@@ -118,9 +111,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_json() {
-        async fn handler(
-            Json(payload, _): Json<TestPayload, TestApiError>,
-        ) -> impl IntoResponse {
+        async fn handler(Json(payload, _): Json<TestPayload, TestApiError>) -> impl IntoResponse {
             axum::Json(payload)
         }
 
@@ -134,9 +125,7 @@ mod tests {
                     .method("POST")
                     .uri("/")
                     .header("content-type", "application/json")
-                    .body(Body::from(
-                        r#"{"name": "test", "value": 123}"#,
-                    ))
+                    .body(Body::from(r#"{"name": "test", "value": 123}"#))
                     .unwrap(),
             )
             .await
@@ -176,16 +165,12 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         assert_eq!(&body[..], b"123");
 
         // Failure case
-        let response = app
-            .oneshot(Request::builder().uri("/abc").body(Body::empty()).unwrap())
-            .await
-            .unwrap();
+        let response =
+            app.oneshot(Request::builder().uri("/abc").body(Body::empty()).unwrap()).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }

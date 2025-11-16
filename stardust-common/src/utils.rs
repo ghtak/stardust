@@ -2,19 +2,14 @@ use std::env;
 
 pub fn manifest_dir() -> crate::Result<String> {
     // Read the environment variable using `std::env::var()`.
-    env::var("CARGO_MANIFEST_DIR")
-        .map_err(|e| crate::Error::LoadError(e.into()))
+    env::var("CARGO_MANIFEST_DIR").map_err(|e| crate::Error::LoadError(e.into()))
 }
 
 pub fn workspace_dir() -> crate::Result<String> {
     let manifest_dir = manifest_dir()?;
     let workspace_dir = std::path::Path::new(&manifest_dir)
         .parent()
-        .ok_or_else(|| {
-            crate::Error::LoadError(anyhow::anyhow!(
-                "Failed to get parent directory"
-            ))
-        })?
+        .ok_or_else(|| crate::Error::LoadError(anyhow::anyhow!("Failed to get parent directory")))?
         .to_string_lossy()
         .to_string();
     Ok(workspace_dir)
@@ -36,11 +31,7 @@ pub fn generate_uid_short() -> String {
     format!("{:08x}", short_val)
 }
 
-
-pub fn contains<'a, C: ?Sized, T: 'a, U: ?Sized>(
-    container: &'a C,
-    element: &'a U,
-) -> bool
+pub fn contains<'a, C: ?Sized, T: 'a, U: ?Sized>(container: &'a C, element: &'a U) -> bool
 where
     &'a C: IntoIterator<Item = &'a T>,
     T: PartialEq<U>,
@@ -75,7 +66,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_uid(){
+    fn test_generate_uid() {
         println!("{}", generate_uid());
         println!("{}", generate_uid_short());
     }

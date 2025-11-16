@@ -52,9 +52,7 @@ impl Config {
     pub fn from_file(path: &str) -> crate::Result<Self> {
         config::Config::builder()
             .add_source(config::File::with_name(path))
-            .add_source(
-                config::Environment::with_prefix("APPCONFIG").separator("_"),
-            )
+            .add_source(config::Environment::with_prefix("APPCONFIG").separator("_"))
             .build()
             .map_err(|e| crate::Error::LoadError(e.into()))?
             .try_deserialize::<Config>()

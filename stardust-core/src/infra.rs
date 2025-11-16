@@ -1,7 +1,5 @@
 pub mod migration_repo {
-    #[derive(
-        Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow,
-    )]
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
     pub struct MigrationModel {
         pub name: String,
         pub version: i32,
@@ -9,9 +7,7 @@ pub mod migration_repo {
         pub updated_at: chrono::DateTime<chrono::Utc>,
     }
 
-    pub async fn create_table(
-        handle: &mut stardust_db::Handle<'_>,
-    ) -> stardust_common::Result<()> {
+    pub async fn create_table(handle: &mut stardust_db::Handle<'_>) -> stardust_common::Result<()> {
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS stardust_migration (
@@ -65,15 +61,14 @@ pub mod migration_repo {
         handle: &mut stardust_db::Handle<'_>,
         name: &str,
     ) -> stardust_common::Result<Option<MigrationModel>> {
-        let row =
-            sqlx::QueryBuilder::new("SELECT * FROM stardust_migration WHERE ")
-                .push("name = ")
-                .push_bind(name)
-                .push(" ORDER BY version DESC LIMIT 1")
-                .build_query_as::<MigrationModel>()
-                .fetch_optional(handle.executor())
-                .await
-                .map_err(stardust_db::into_error)?;
+        let row = sqlx::QueryBuilder::new("SELECT * FROM stardust_migration WHERE ")
+            .push("name = ")
+            .push_bind(name)
+            .push(" ORDER BY version DESC LIMIT 1")
+            .build_query_as::<MigrationModel>()
+            .fetch_optional(handle.executor())
+            .await
+            .map_err(stardust_db::into_error)?;
         Ok(row)
     }
 }

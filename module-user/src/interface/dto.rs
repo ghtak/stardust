@@ -53,9 +53,8 @@ pub struct CreateApiKeyResponse {
     pub description: String,
 }
 
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ApiKeyDto{
+pub struct ApiKeyDto {
     pub id: i64,
     pub prefix: String,
     pub description: String,
@@ -78,4 +77,3 @@ impl From<entity::ApiKeyEntity> for ApiKeyDto {
         }
     }
 }
-

@@ -1,6 +1,6 @@
-use crate::handle::{Handle, DefaultDriver};
+use crate::handle::{DefaultDriver, Handle};
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Database {
     pool: sqlx::Pool<DefaultDriver>,
 }
@@ -42,8 +42,7 @@ mod tests {
     async fn test_db() {
         let db = db_connect().await.unwrap();
         let mut ctx = db.pool();
-        let row: (i32,) =
-            sqlx::query_as("SELECT 1").fetch_one(ctx.executor()).await.unwrap();
+        let row: (i32,) = sqlx::query_as("SELECT 1").fetch_one(ctx.executor()).await.unwrap();
         assert_eq!(row.0, 1);
     }
 }

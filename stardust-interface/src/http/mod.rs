@@ -8,7 +8,5 @@ pub use session::*;
 pub use traceid::*;
 pub mod utils;
 
-
 #[cfg(test)]
 mod tests {}
-

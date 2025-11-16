@@ -5,8 +5,7 @@ pub struct VerifyResult {
 
 pub trait Hasher: Sync + Send {
     fn hash(&self, password: &str) -> crate::Result<String>;
-    fn verify(&self, password: &str, hash: &str)
-    -> crate::Result<VerifyResult>;
+    fn verify(&self, password: &str, hash: &str) -> crate::Result<VerifyResult>;
 }
 
 #[derive(Default, Clone, Copy)]
@@ -22,11 +21,7 @@ impl Hasher for Sha256Hasher {
         Ok(BASE64_STANDARD.encode(hash))
     }
 
-    fn verify(
-        &self,
-        password: &str,
-        hash: &str,
-    ) -> crate::Result<VerifyResult> {
+    fn verify(&self, password: &str, hash: &str) -> crate::Result<VerifyResult> {
         Ok(VerifyResult {
             is_valid: self.hash(password)? == hash,
             needs_rehash: false,
@@ -42,11 +37,7 @@ impl Hasher for DummyHasher {
         Ok(password.to_string())
     }
 
-    fn verify(
-        &self,
-        password: &str,
-        hash: &str,
-    ) -> crate::Result<VerifyResult> {
+    fn verify(&self, password: &str, hash: &str) -> crate::Result<VerifyResult> {
         Ok(VerifyResult {
             is_valid: password == hash,
             needs_rehash: false,

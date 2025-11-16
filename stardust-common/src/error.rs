@@ -1,4 +1,4 @@
-use std::{borrow::Cow};
+use std::borrow::Cow;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -44,7 +44,6 @@ pub enum Error {
     #[error("Expired: {0}")]
     Expired(Cow<'static, str>),
 }
-
 
 pub type Result<T> = std::result::Result<T, Error>;
 

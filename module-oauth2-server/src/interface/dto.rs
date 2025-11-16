@@ -105,7 +105,6 @@ impl OAuth2TokenRequest {
     }
 }
 
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct OAuth2TokenResponse {
     pub access_token: String,

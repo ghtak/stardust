@@ -19,7 +19,6 @@ pub struct VerifyOAuth2ClientCommand<'a> {
     pub client_secret: &'a str,
 }
 
-
 pub struct VerifyOAuth2AuthorizationCommand<'a> {
     pub response_type: &'a str,
     pub client_id: &'a str,

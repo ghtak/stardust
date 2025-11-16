@@ -60,7 +60,6 @@ impl<'a> FindUserQuery<'a> {
     }
 }
 
-
 pub struct FindApiKeyUserQuery<'a> {
     pub key_hash: &'a str,
 }

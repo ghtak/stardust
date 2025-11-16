@@ -1,15 +1,13 @@
+pub mod container;
 pub mod dto;
 pub mod http;
 pub mod user;
-pub mod container;
 
 use std::sync::Arc;
 
 use crate::service::{ApiKeyService, UserService};
 
-pub trait ServiceProvider:
-    Sync + Send
-{
+pub trait ServiceProvider: Sync + Send {
     type UserService: UserService;
     type ApiKeyService: ApiKeyService;
 
