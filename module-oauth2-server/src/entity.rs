@@ -30,14 +30,9 @@ pub struct OAuth2AuthorizationEntity {
 }
 
 impl OAuth2AuthorizationEntity {
-    pub fn new(
-        client_id: i64,
-        principal_id: i64,
-        scope: String,
-        state: String,
-    ) -> Self {
+    pub fn new(client_id: i64, principal_id: i64, scope: String, state: String) -> Self {
         let now = chrono::Utc::now();
-        Self{
+        Self {
             id: 0,
             oauth2_client_id: client_id,
             principal_id: principal_id,
@@ -55,4 +50,39 @@ impl OAuth2AuthorizationEntity {
             refresh_token_expires_at: now,
         }
     }
+
+    pub fn issue_token(&mut self, access_token: String, refresh_token_hash: String) {
+        let now = chrono::Utc::now();
+        self.auth_code_expires_at = now;
+        self.access_token_value = access_token;
+        self.access_token_issued_at = now;
+        self.access_token_expires_at = now + chrono::Duration::days(1);
+        self.refresh_token_hash = refresh_token_hash;
+        self.refresh_token_issued_at = now;
+        self.refresh_token_expires_at = now + chrono::Duration::days(30);
+    }
+
+    pub fn refresh_token(&mut self, access_token: String) {
+        let now = chrono::Utc::now();
+        self.access_token_value = access_token;
+        self.access_token_issued_at = now;
+        self.access_token_expires_at = now + chrono::Duration::days(1);
+        self.refresh_token_expires_at = now + chrono::Duration::days(30);
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct OAuth2Token {
+    pub access_token: String,
+    pub expires_in: i64,
+    pub refresh_token: Option<String>,
+    pub scope: String,
+    pub token_type: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct OAuthUserAggregate {
+    pub user: module_user::entity::UserAggregate,
+    pub client: OAuth2ClientEntity,
+    pub authorization: OAuth2AuthorizationEntity,
 }

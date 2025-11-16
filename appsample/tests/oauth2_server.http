@@ -32,3 +32,59 @@ X-ApiKey : 53ce97cf782d4795953b1eb52801074f
 
 
 # http://localhost:5299/oauth2/authorize?client_id=client_id&response_type=code&redirect_uri=http://localhost:5299/oauth2/testcallback&scope=write&state=xyz
+
+
+###
+# @oauth2 token
+
+POST http://localhost:5299/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=authorization_code
+&client_id=client_id
+&client_secret=client_secret
+&redirect_uri=http://localhost:5299/oauth2/testcallback
+&code=49216eda5f484bea92ac5b04334ba7dd
+
+# {
+#   "code": 200,
+#   "data": {
+#     "access_token": "d1e9b0373ab14837a38d5e9e4454640c",
+#     "expires_in": 3600,
+#     "refresh_token": "8f3fc80eef8e40f5b175ad4545ca7ee6",
+#     "scope": "write",
+#     "token_type": "Bearer"
+#   }
+# }
+
+###
+# @oauth2 refresh_token
+
+POST http://localhost:5299/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token
+&client_id=client_id
+&client_secret=client_secret
+&redirect_uri=http://localhost:5299/oauth2/testcallback
+&refresh_token=8f3fc80eef8e40f5b175ad4545ca7ee6
+
+
+
+# {
+#   "code": 200,
+#   "data": {
+#     "access_token": "4f390c87e90c4f679d9045868c588d2a",
+#     "expires_in": 3600,
+#     "refresh_token": "8f3fc80eef8e40f5b175ad4545ca7ee6",
+#     "scope": "write",
+#     "token_type": "Bearer"
+#   }
+# }
+
+
+###
+# @oauth me
+
+GET http://localhost:5299/oauth2/me
+Authorization: Bearer 4f390c87e90c4f679d9045868c588d2a

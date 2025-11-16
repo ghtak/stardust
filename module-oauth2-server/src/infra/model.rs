@@ -1,6 +1,6 @@
 use crate::entity;
 
-#[derive(sqlx::FromRow)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct OAuth2ClientModel {
     pub id: i64,
     pub client_id: String,
@@ -31,7 +31,7 @@ impl From<OAuth2ClientModel> for entity::OAuth2ClientEntity {
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct OAuth2AuthorizationModel {
     id: i64,
     oauth2_client_id: i64,
@@ -70,4 +70,17 @@ impl From<OAuth2AuthorizationModel> for entity::OAuth2AuthorizationEntity {
             refresh_token_expires_at: row.refresh_token_expires_at,
         }
     }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
+
+pub struct OAuth2AuthorizationUserModel {
+    #[sqlx(flatten)]
+    pub authorization: OAuth2AuthorizationModel,
+    #[sqlx(flatten)]
+    pub user: module_user::infra::model::UserModel,
+    #[sqlx(flatten)]
+    pub account: module_user::infra::model::UserAccountModel,
+    #[sqlx(flatten)]
+    pub client: OAuth2ClientModel,
 }

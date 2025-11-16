@@ -14,7 +14,13 @@ pub struct DeleteOAuth2ClientCommand {
     pub id: i64,
 }
 
-pub struct OAuth2VerifyCommand<'a> {
+pub struct VerifyOAuth2ClientCommand<'a> {
+    pub client_id: &'a str,
+    pub client_secret: &'a str,
+}
+
+
+pub struct VerifyOAuth2AuthorizationCommand<'a> {
     pub response_type: &'a str,
     pub client_id: &'a str,
     pub redirect_uri: &'a str,
@@ -22,7 +28,16 @@ pub struct OAuth2VerifyCommand<'a> {
     pub state: &'a str,
 }
 
-pub struct OAuth2AuthorizeCommand<'a> {
+pub struct AuthorizeOAuth2Command<'a> {
     pub principal: &'a UserAggregate,
-    pub verify_command: &'a OAuth2VerifyCommand<'a>,
+    pub verify_command: &'a VerifyOAuth2AuthorizationCommand<'a>,
+}
+
+pub struct TokenCommand<'a> {
+    pub grant_type: &'a str,
+    pub client_id: &'a str,
+    pub client_secret: &'a str,
+    pub redirect_uri: &'a str,
+    pub code: Option<&'a str>,
+    pub refresh_token: Option<&'a str>,
 }

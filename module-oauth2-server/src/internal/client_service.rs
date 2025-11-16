@@ -53,4 +53,28 @@ where
     ) -> stardust_common::Result<()> {
         client_repo::delete_client(&mut self.database.pool(), &command).await
     }
+
+    async fn verify(
+        &self,
+        command: &command::VerifyOAuth2ClientCommand<'_>,
+    ) -> stardust_common::Result<()> {
+        let clients = self
+            .find_clients(&query::FindOAuth2ClientQuery {
+                client_id: Some(command.client_id),
+            })
+            .await?;
+
+        if clients.len() == 0 {
+            return Err(stardust_common::Error::NotFound);
+        }
+
+        let client = clients.first().unwrap();
+        let result = self.hasher.verify(&command.client_secret, &client.client_secret_hash)?;
+        if !result.is_valid {
+            return Err(stardust_common::Error::InvalidParameter(
+                "Invalid client secret".into(),
+            ));
+        }
+        Ok(())
+    }
 }

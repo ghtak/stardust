@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use axum::{
+    Form,
     extract::{Query, State},
     response::{IntoResponse, Redirect},
     routing::{delete, get, post},
@@ -9,8 +10,8 @@ use module_user::interface::user::{AdminUser, AuthUser};
 use stardust_interface::http::ApiResponse;
 
 use crate::{
-    command,
-    interface::{ServiceProvider, dto},
+    command, entity,
+    interface::{ServiceProvider, dto, extract},
     query,
     service::{OAuth2AuthorizationService, OAuth2ClientService},
 };
@@ -79,7 +80,7 @@ where
 
     let entity = ct
         .oauth2_authorization_service()
-        .authorize(&command::OAuth2AuthorizeCommand {
+        .authorize(&command::AuthorizeOAuth2Command {
             principal: &user,
             verify_command: &req.as_verify_command(),
         })
@@ -91,20 +92,25 @@ where
     Ok(Redirect::to(&redirect_url).into_response())
 }
 
-async fn oauth2_token<T>(State(ct): State<Arc<T>>) -> String
+async fn oauth2_token<T>(
+    State(ct): State<Arc<T>>,
+    Form(req): Form<dto::OAuth2TokenRequest>,
+) -> Result<ApiResponse<dto::OAuth2TokenResponse>, ApiResponse<()>>
 where
     T: ServiceProvider,
 {
-    let _ = ct.oauth2_authorization_service();
-    "".into()
+    let token = ct.oauth2_authorization_service().token(&req.as_command()).await?;
+    Ok(ApiResponse::with(token.into()))
 }
 
-async fn oauth2_me<T>(State(ct): State<Arc<T>>) -> String
+async fn oauth2_me<T>(
+    State(_): State<Arc<T>>,
+    extract::OAuth2User(user): extract::OAuth2User,
+) -> ApiResponse<entity::OAuthUserAggregate>
 where
     T: ServiceProvider,
 {
-    let _ = ct.oauth2_authorization_service();
-    "".into()
+    ApiResponse::with(user)
 }
 
 async fn oauth2_testcallback<T>(

@@ -40,7 +40,11 @@ pub enum Error {
 
     #[error("Store error: {0}")]
     StoreError(anyhow::Error),
+
+    #[error("Expired: {0}")]
+    Expired(Cow<'static, str>),
 }
+
 
 pub type Result<T> = std::result::Result<T, Error>;
 

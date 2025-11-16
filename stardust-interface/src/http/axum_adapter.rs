@@ -77,6 +77,9 @@ impl From<stardust_common::Error> for ApiResponse<()> {
             stardust_common::Error::Forbidden => StatusCode::FORBIDDEN,
             stardust_common::Error::NotFound => StatusCode::NOT_FOUND,
             stardust_common::Error::InvalidParameter(_) => StatusCode::BAD_REQUEST,
+            stardust_common::Error::Timeout => StatusCode::REQUEST_TIMEOUT,
+            stardust_common::Error::Expired(_) => StatusCode::UNAUTHORIZED,
+            stardust_common::Error::Duplicate(_) => StatusCode::CONFLICT,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
         Self::error(statuscode, value.to_string())

@@ -16,18 +16,32 @@ pub trait OAuth2ClientService: Sync + Send {
         &self,
         command: &command::DeleteOAuth2ClientCommand,
     ) -> stardust_common::Result<()>;
+
+    async fn verify(
+        &self,
+        command: &command::VerifyOAuth2ClientCommand<'_>,
+    ) -> stardust_common::Result<()>;
 }
 
 #[async_trait::async_trait]
 pub trait OAuth2AuthorizationService: Sync + Send {
     async fn verify(
         &self,
-        command: &command::OAuth2VerifyCommand<'_>,
+        command: &command::VerifyOAuth2AuthorizationCommand<'_>,
     ) -> stardust_common::Result<entity::OAuth2ClientEntity>;
 
     async fn authorize(
         &self,
-        command: &command::OAuth2AuthorizeCommand<'_>,
+        command: &command::AuthorizeOAuth2Command<'_>,
     ) -> stardust_common::Result<entity::OAuth2AuthorizationEntity>;
 
+    async fn token(
+        &self,
+        command: &command::TokenCommand<'_>,
+    ) -> stardust_common::Result<entity::OAuth2Token>;
+
+    async fn find_user(
+        &self,
+        query: &query::FindOAuth2UserQuery<'_>,
+    ) -> stardust_common::Result<Option<entity::OAuthUserAggregate>>;
 }

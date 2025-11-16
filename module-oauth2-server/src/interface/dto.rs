@@ -59,9 +59,9 @@ pub struct OAuth2AuthorizeRequest {
     pub state: String,
 }
 
-impl OAuth2AuthorizeRequest{
-    pub fn as_verify_command(&self) -> command::OAuth2VerifyCommand<'_> {
-        command::OAuth2VerifyCommand {
+impl OAuth2AuthorizeRequest {
+    pub fn as_verify_command(&self) -> command::VerifyOAuth2AuthorizationCommand<'_> {
+        command::VerifyOAuth2AuthorizationCommand {
             response_type: &self.response_type,
             client_id: &self.client_id,
             redirect_uri: &self.redirect_uri,
@@ -78,11 +78,51 @@ impl OAuth2AuthorizeRequest{
             ("scope", self.scope.as_str()),
             ("state", self.state.as_str()),
         ];
-        params
-            .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
-            .collect::<Vec<String>>()
-            .join("&")
+        params.iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<String>>().join("&")
     }
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct OAuth2TokenRequest {
+    pub grant_type: String,
+    pub client_id: String,
+    pub client_secret: String,
+    pub redirect_uri: String,
+    pub code: Option<String>,
+    pub refresh_token: Option<String>,
+}
+
+impl OAuth2TokenRequest {
+    pub fn as_command(&self) -> command::TokenCommand {
+        command::TokenCommand {
+            grant_type: self.grant_type.as_str(),
+            client_id: self.client_id.as_str(),
+            client_secret: self.client_secret.as_str(),
+            redirect_uri: self.redirect_uri.as_str(),
+            code: self.code.as_deref(),
+            refresh_token: self.refresh_token.as_deref(),
+        }
+    }
+}
+
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct OAuth2TokenResponse {
+    pub access_token: String,
+    pub expires_in: i64,
+    pub refresh_token: Option<String>,
+    pub scope: String,
+    pub token_type: String,
+}
+
+impl From<entity::OAuth2Token> for OAuth2TokenResponse {
+    fn from(value: entity::OAuth2Token) -> Self {
+        Self {
+            access_token: value.access_token,
+            expires_in: value.expires_in,
+            refresh_token: value.refresh_token,
+            scope: value.scope,
+            token_type: value.token_type,
+        }
+    }
+}

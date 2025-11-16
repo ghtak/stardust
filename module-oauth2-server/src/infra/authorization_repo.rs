@@ -1,6 +1,10 @@
 use stardust_db::Handle;
 
-use crate::infra::model;
+use crate::{
+    entity,
+    infra::model::{self, OAuth2AuthorizationModel},
+    query,
+};
 
 pub async fn create_table(handle: &mut Handle<'_>) -> stardust_common::Result<()> {
     sqlx::query(
@@ -67,4 +71,115 @@ pub async fn create_authorization(
         .await
         .map_err(stardust_db::into_error)?;
     Ok(row.into())
+}
+
+pub async fn find_authorization(
+    handle: &mut Handle<'_>,
+    query: &query::FindOAuth2AuthorizationQuery<'_>,
+) -> stardust_common::Result<Option<entity::OAuth2AuthorizationEntity>> {
+    let mut builder = sqlx::QueryBuilder::new(r#"SELECT * FROM oauth2_authorization WHERE 1=1 "#);
+    if let Some(auth_code_value) = &query.auth_code_value {
+        builder.push(" AND auth_code_value = ");
+        builder.push_bind(auth_code_value);
+    }
+
+    if let Some(refresh_token_hash) = &query.refresh_token_hash {
+        builder.push(" AND refresh_token_hash = ");
+        builder.push_bind(refresh_token_hash);
+    }
+
+    let row = builder
+        .build_query_as::<model::OAuth2AuthorizationModel>()
+        .fetch_optional(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+    Ok(row.map(Into::into))
+}
+
+pub async fn save_authorization(
+    handle: &mut Handle<'_>,
+    entity: &entity::OAuth2AuthorizationEntity,
+) -> stardust_common::Result<entity::OAuth2AuthorizationEntity> {
+    let mut builder = sqlx::QueryBuilder::new("UPDATE oauth2_authorization SET ");
+    builder
+        .push(" auth_code_expires_at = ")
+        .push_bind(entity.auth_code_expires_at)
+        .push(", access_token_value = ")
+        .push_bind(&entity.access_token_value)
+        .push(", access_token_issued_at = ")
+        .push_bind(entity.access_token_issued_at)
+        .push(", access_token_expires_at = ")
+        .push_bind(entity.access_token_expires_at)
+        .push(", refresh_token_hash = ")
+        .push_bind(&entity.refresh_token_hash)
+        .push(", refresh_token_issued_at = ")
+        .push_bind(entity.refresh_token_issued_at)
+        .push(", refresh_token_expires_at = ")
+        .push_bind(entity.refresh_token_expires_at)
+        .push(" WHERE id = ")
+        .push_bind(entity.id)
+        .push(" RETURNING * ");
+    let row = builder
+        .build_query_as::<OAuth2AuthorizationModel>()
+        .fetch_one(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+    Ok(row.into())
+}
+
+pub async fn find_user(
+    handle: &mut Handle<'_>,
+    query: &query::FindOAuth2UserQuery<'_>,
+) -> stardust_common::Result<Option<entity::OAuthUserAggregate>> {
+    let mut builder = sqlx::QueryBuilder::new(
+        r#"
+        select
+        (oa.*) as "authorization!: OAuth2AuthorizationModel",
+        (u.*) as "user!: UserModel",
+        (ua.*) as "account!: UserAccountModel",
+        (c.*) as "client!: OAuth2ClientModel"
+        from oauth2_authorization oa
+        left join stardust_user u on oa.principal_id = u.id
+        left join stardust_user_account ua on oa.principal_id = ua.user_id
+        left join oauth2_client c on oa.oauth2_client_id = c.id
+        where oa.access_token_value =
+    "#,
+    );
+    builder.push_bind(query.access_token);
+
+    let rows = builder
+        .build_query_as::<model::OAuth2AuthorizationUserModel>()
+        .fetch_all(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+
+    if rows.is_empty() {
+        return Ok(None);
+    }
+
+    let mut authorization: Option<entity::OAuth2AuthorizationEntity> = None;
+    let mut client: Option<entity::OAuth2ClientEntity> = None;
+    let mut user_aggregate: Option<module_user::entity::UserAggregate> = None;
+
+    for r in rows {
+        if authorization.is_none() {
+            authorization = Some(r.authorization.into());
+        }
+        if client.is_none() {
+            client = Some(r.client.into());
+        }
+        let agg = user_aggregate.get_or_insert_with(|| module_user::entity::UserAggregate {
+            user: r.user.into(),
+            accounts: Vec::new(),
+        });
+        agg.accounts.push(r.account.into());
+    }
+    if authorization.is_none() {
+        return Ok(None);
+    }
+    Ok(Some(entity::OAuthUserAggregate {
+        client: client.unwrap(),
+        user: user_aggregate.unwrap(),
+        authorization: authorization.unwrap(),
+    }))
 }
