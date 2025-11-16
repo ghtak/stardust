@@ -30,7 +30,7 @@ where
             if let Some(user) =
                 s.apikey_service().find_user(&query::FindApiKeyUserQuery { key_hash }).await?
             {
-                return Ok(Self(user));
+                return Ok(Self(user.user));
             }
         }
         let session = Session::from_request_parts(parts, s)

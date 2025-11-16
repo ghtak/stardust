@@ -57,6 +57,13 @@ pub struct ApiKeyEntity {
     pub deactivated_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ApiKeyUserAggregate {
+    pub apikey: ApiKeyEntity,
+    pub user: UserAggregate
+}
+
+
 impl std::fmt::Display for AccountType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

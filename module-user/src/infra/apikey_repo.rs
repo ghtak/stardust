@@ -53,22 +53,42 @@ pub async fn create_apikey(
 pub async fn find_user(
     handle: &mut stardust_db::Handle<'_>,
     query: &query::FindApiKeyUserQuery<'_>,
-) -> stardust_common::Result<Option<entity::UserAggregate>> {
+) -> stardust_common::Result<Option<entity::ApiKeyUserAggregate>> {
     let mut builder = sqlx::QueryBuilder::new(
         r#"
-        SELECT (u.*) as "inner!: UserModel", (ua.*) as "related!: UserAccountModel"
-        FROM stardust_user u
-        LEFT JOIN stardust_user_account ua ON u.id = ua.user_id
-        WHERE u.id IN
+        select
+            sa.id as apikey_id,
+            sa.user_id as apikey_user_id,
+            sa.key_hash as apikey_key_hash,
+            sa.prefix as apikey_prefix,
+            sa.description as apikey_description,
+            sa.created_at as apikey_created_at,
+            sa.updated_at as apikey_updated_at,
+            sa.last_used_at as apikey_last_used_at,
+            sa.deactivated_at as apikey_deactivated_at,
+            u.id as user_id,
+            u.username as user_username,
+            u.email as user_email,
+            u.role as user_role,
+            u.status as user_status,
+            u.created_at as user_created_at,
+            u.updated_at as user_updated_at,
+            ua.uid as account_uid,
+            ua.user_id as account_user_id,
+            ua.account_type as account_account_type,
+            ua.password_hash as account_password_hash,
+            ua.created_at as account_created_at,
+            ua.updated_at as account_updated_at
+        from stardust_apikey sa
+        left join stardust_user u on sa.user_id  = u.id
+        left join stardust_user_account ua on u.id = ua.user_id
+        where sa.key_hash =
     "#,
     );
-    builder
-        .push("(SELECT user_id from stardust_apikey where key_hash = ")
-        .push_bind(query.key_hash)
-        .push(" AND deactivated_at IS NULL)");
+    builder.push_bind(query.key_hash).push(" AND deactivated_at IS NULL");
 
     let rows = builder
-        .build_query_as::<stardust_db::With<model::UserModel, model::UserAccountModel>>()
+        .build_query_as::<model::ApiKeyUserModel>()
         .fetch_all(handle.executor())
         .await
         .map_err(stardust_db::into_error)?;
@@ -76,18 +96,29 @@ pub async fn find_user(
     if rows.is_empty() {
         return Ok(None);
     }
-
+    let mut apikey: Option<entity::ApiKeyEntity> = None;
     let mut aggregate: Option<entity::UserAggregate> = None;
     for r in rows {
+        tracing::info!("row {:?}", &r);
+        if apikey.is_none() {
+            apikey = Some(r.apikey_entity());
+        }
         let agg = aggregate.get_or_insert_with(|| entity::UserAggregate {
-            user: r.inner.into(),
+            user: r.user_entity(),
             accounts: Vec::new(),
         });
 
-        agg.accounts.push(r.related.into());
+        agg.accounts.push(r.account_entity());
     }
 
-    Ok(aggregate)
+    if apikey.is_none() {
+        return Ok(None);
+    }
+
+    Ok(Some(entity::ApiKeyUserAggregate {
+        apikey: apikey.unwrap(),
+        user: aggregate.unwrap(),
+    }))
 }
 
 pub async fn find_apikeys(
@@ -149,4 +180,23 @@ pub async fn save_apikey(
         .map_err(stardust_db::into_error)?;
 
     Ok(row.into())
+}
+
+pub async fn update_last_used_at(
+    handle: &mut stardust_db::Handle<'_>,
+    id: i64,
+    last_used_at: chrono::DateTime<chrono::Utc>,
+) -> stardust_common::Result<()> {
+    sqlx::QueryBuilder::new("UPDATE stardust_apikey SET ")
+        .push("last_used_at = ")
+        .push_bind(last_used_at)
+        .push(", updated_at = ")
+        .push_bind(last_used_at)
+        .push(" WHERE id = ")
+        .push_bind(id)
+        .build()
+        .execute(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+    Ok(())
 }

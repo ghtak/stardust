@@ -60,6 +60,7 @@ impl<'a> FindUserQuery<'a> {
     }
 }
 
+#[derive(Debug, Clone, Default)]
 pub struct FindApiKeyUserQuery<'a> {
     pub key_hash: &'a str,
 }

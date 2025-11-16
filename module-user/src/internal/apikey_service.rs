@@ -4,23 +4,34 @@ use stardust_common::With;
 
 use crate::{command, entity, infra::apikey_repo, query, service::ApiKeyService};
 
-pub struct ApikeyServiceImpl<Hasher> {
+pub struct ApikeyServiceImpl<Hasher, Tracker> {
     database: stardust_db::Database,
     hasher: Arc<Hasher>,
+    tracker: Arc<Tracker>,
 }
 
-impl<Hasher> ApikeyServiceImpl<Hasher>
+impl<Hasher, Tracker> ApikeyServiceImpl<Hasher, Tracker>
 where
     Hasher: stardust_common::hash::Hasher,
+    Tracker: crate::service::ApiKeyUsageTracker,
 {
-    pub fn new(database: stardust_db::Database, hasher: Arc<Hasher>) -> Self {
-        Self { database, hasher }
+    pub fn new(
+        database: stardust_db::Database,
+        hasher: Arc<Hasher>,
+        tracker: Arc<Tracker>,
+    ) -> Self {
+        Self {
+            database,
+            hasher,
+            tracker,
+        }
     }
 }
 
-impl<Hasher> ApiKeyService for ApikeyServiceImpl<Hasher>
+impl<Hasher, Tracker> ApiKeyService for ApikeyServiceImpl<Hasher, Tracker>
 where
     Hasher: stardust_common::hash::Hasher,
+    Tracker: crate::service::ApiKeyUsageTracker,
 {
     async fn create_apikey(
         &self,
@@ -51,8 +62,17 @@ where
     async fn find_user(
         &self,
         query: &query::FindApiKeyUserQuery<'_>,
-    ) -> stardust_common::Result<Option<entity::UserAggregate>> {
-        return apikey_repo::find_user(&mut self.database.pool(), &query).await;
+    ) -> stardust_common::Result<Option<entity::ApiKeyUserAggregate>> {
+        tracing::info!("find_user {:?}", &query);
+        let result = apikey_repo::find_user(&mut self.database.pool(), &query).await;
+        tracing::info!("result {:?}", &result);
+        match result {
+            Ok(Some(ref user)) => {
+                self.tracker.track_usage(user.apikey.id).await?;
+            }
+            _ => {}
+        }
+        result
     }
 
     async fn find_apikeys(

@@ -149,7 +149,20 @@ pub async fn find_user_aggregate(
 ) -> stardust_common::Result<Option<entity::UserAggregate>> {
     let mut builder = sqlx::QueryBuilder::new(
         r#"
-        SELECT (u.*) as "inner!: UserModel", (ua.*) as "related!: UserAccountModel"
+        SELECT
+            u.id as user_id,
+            u.username as user_username,
+            u.email as user_email,
+            u.role as user_role,
+            u.status as user_status,
+            u.created_at as user_created_at,
+            u.updated_at as user_updated_at,
+            ua.uid as account_uid,
+            ua.user_id as account_user_id,
+            ua.account_type as account_account_type,
+            ua.password_hash as account_password_hash,
+            ua.created_at as account_created_at,
+            ua.updated_at as account_updated_at
         FROM stardust_user u
         LEFT JOIN stardust_user_account ua ON u.id = ua.user_id
         WHERE 1=1
@@ -177,7 +190,7 @@ pub async fn find_user_aggregate(
     }
 
     let rows = builder
-        .build_query_as::<stardust_db::With<UserModel, UserAccountModel>>()
+        .build_query_as::<model::UserAggregateModel>()
         .fetch_all(handle.executor())
         .await
         .map_err(stardust_db::into_error)?;
@@ -189,11 +202,11 @@ pub async fn find_user_aggregate(
     let mut aggregate: Option<entity::UserAggregate> = None;
     for r in rows {
         let agg = aggregate.get_or_insert_with(|| entity::UserAggregate {
-            user: r.inner.into(),
+            user: r.user_entity(),
             accounts: Vec::new(),
         });
 
-        agg.accounts.push(r.related.into());
+        agg.accounts.push(r.account_entity());
     }
 
     Ok(aggregate)

@@ -27,10 +27,15 @@ async fn build_container() -> Arc<app::Container> {
     let database = stardust_db::Database::open(&config.database).await.unwrap();
     let hasher = Arc::new(app::HasherImpl::default());
     let user_service = Arc::new(app::UserServiceImpl::new(database.clone(), hasher.clone()));
+
+    let apikey_usage_tracker = app::ApiKeyUsageTrackerImpl::new(database.clone());
+
     let apikey_service = Arc::new(app::ApikeyServiceImpl::new(
         database.clone(),
         hasher.clone(),
+        apikey_usage_tracker.clone(),
     ));
+    
     let user_container = Arc::new(app::UserContaierImpl::new(
         user_service.clone(),
         apikey_service.clone(),

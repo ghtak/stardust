@@ -26,7 +26,7 @@ pub trait ApiKeyService: Sync + Send {
     fn find_user(
         &self,
         query: &query::FindApiKeyUserQuery<'_>,
-    ) -> impl Future<Output = stardust_common::Result<Option<entity::UserAggregate>>> + Send;
+    ) -> impl Future<Output = stardust_common::Result<Option<entity::ApiKeyUserAggregate>>> + Send;
 
     fn find_apikeys(
         &self,
@@ -37,4 +37,12 @@ pub trait ApiKeyService: Sync + Send {
         &self,
         command: &command::DeactivateApiKeyCommand,
     ) -> impl Future<Output = stardust_common::Result<entity::ApiKeyEntity>> + Send;
+}
+
+#[async_trait::async_trait]
+pub trait ApiKeyUsageTracker: Sync + Send {
+    async fn track_usage(
+        &self,
+        apikey_id: i64,
+    ) -> stardust_common::Result<()>;
 }
