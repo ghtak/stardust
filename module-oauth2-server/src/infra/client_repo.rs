@@ -54,3 +54,24 @@ pub async fn create_client(
 
     Ok(row.into())
 }
+
+pub async fn find_clients(
+    handle: &mut Handle<'_>,
+    query: &crate::query::FindOAuth2ClientQuery<'_>,
+) -> stardust_common::Result<Vec<entity::OAuth2ClientEntity>> {
+    let mut querybuilder = sqlx::QueryBuilder::new("SELECT * FROM oauth2_client where 1 = 1 ");
+    if let Some(ref client_id) = query.client_id {
+        querybuilder.push(" AND client_id = ");
+        querybuilder.push_bind(client_id);
+    }
+
+    querybuilder.push(" order by id desc");
+
+    let rows = querybuilder
+        .build_query_as::<model::OAuth2ClientModel>()
+        .fetch_all(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+
+    Ok(rows.into_iter().map(Into::into).collect())
+}

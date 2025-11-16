@@ -15,3 +15,10 @@ X-ApiKey : 53ce97cf782d4795953b1eb52801074f
     "auth_methods": ["client_secret_basic"],
     "scopes": ["read", "write"]
 }
+
+
+###
+# @oauth2 get
+
+GET http://localhost:5299/oauth2/client
+X-ApiKey : 53ce97cf782d4795953b1eb52801074f

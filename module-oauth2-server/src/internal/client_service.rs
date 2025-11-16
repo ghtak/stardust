@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{command, entity, infra::client_repo, service::OAuth2ClientService};
+use crate::{command, entity, infra::client_repo, query, service::OAuth2ClientService};
 
 pub struct OAuth2ClientServiceImpl<H> {
     database: stardust_db::Database,
@@ -38,5 +38,12 @@ where
         };
         let entity = client_repo::create_client(&mut self.database.pool(), &entity).await?;
         Ok(entity)
+    }
+
+    async fn find_clients(
+        &self,
+        query: &query::FindOAuth2ClientQuery<'_>,
+    ) -> stardust_common::Result<Vec<entity::OAuth2ClientEntity>>{
+        client_repo::find_clients(&mut self.database.pool(), &query).await
     }
 }

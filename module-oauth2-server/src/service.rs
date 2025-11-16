@@ -1,4 +1,4 @@
-use crate::{command, entity};
+use crate::{command, entity, query};
 
 #[async_trait::async_trait]
 pub trait OAuth2ClientService : Sync + Send{
@@ -6,4 +6,9 @@ pub trait OAuth2ClientService : Sync + Send{
         &self,
         command: &command::CreateOAuth2ClientCommand,
     ) -> stardust_common::Result<entity::OAuth2ClientEntity>;
+
+    async fn find_clients(
+        &self,
+        query: &query::FindOAuth2ClientQuery<'_>,
+    ) -> stardust_common::Result<Vec<entity::OAuth2ClientEntity>>;
 }
