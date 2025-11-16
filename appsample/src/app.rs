@@ -8,9 +8,14 @@ pub mod dev_env {
 
     pub type OAuth2ClientServiceImpl =
         module_oauth2_server::internal::OAuth2ClientServiceImpl<HasherImpl>;
+
+    pub type OAuth2AuthorizationServiceImpl =
+        module_oauth2_server::internal::OAuth2AuthorizationServiceImpl<HasherImpl>;
+
     pub type OAuth2ServerContainerImpl = module_oauth2_server::interface::container::Container<
         UserContaierImpl,
         OAuth2ClientServiceImpl,
+        OAuth2AuthorizationServiceImpl,
     >;
 
     pub type Container = crate::container::Container<UserContaierImpl, OAuth2ServerContainerImpl>;

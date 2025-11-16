@@ -1,7 +1,7 @@
 use crate::{command, entity, query};
 
 #[async_trait::async_trait]
-pub trait OAuth2ClientService : Sync + Send{
+pub trait OAuth2ClientService: Sync + Send {
     async fn create_client(
         &self,
         command: &command::CreateOAuth2ClientCommand,
@@ -17,3 +17,6 @@ pub trait OAuth2ClientService : Sync + Send{
         command: &command::DeleteOAuth2ClientCommand,
     ) -> stardust_common::Result<()>;
 }
+
+#[async_trait::async_trait]
+pub trait OAuth2AuthorizationService: Sync + Send {}

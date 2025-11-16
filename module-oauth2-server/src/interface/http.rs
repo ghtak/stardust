@@ -58,32 +58,36 @@ where
     }
 }
 
-async fn oauth2_authorize<T>(State(_): State<Arc<T>>) -> String
+async fn oauth2_authorize<T>(State(ct): State<Arc<T>>) -> String
 where
     T: ServiceProvider,
 {
-    unimplemented!()
+    let _ = ct.oauth2_authorization_service();
+    "".into()
 }
 
-async fn oauth2_login<T>(State(_): State<Arc<T>>) -> String
+async fn oauth2_login<T>(State(ct): State<Arc<T>>) -> String
 where
     T: ServiceProvider,
 {
-    unimplemented!()
+    let _ = ct.oauth2_authorization_service();
+    "".into()
 }
 
-async fn oauth2_token<T>(State(_): State<Arc<T>>) -> String
+async fn oauth2_token<T>(State(ct): State<Arc<T>>) -> String
 where
     T: ServiceProvider,
 {
-    unimplemented!()
+    let _ = ct.oauth2_authorization_service();
+    "".into()
 }
 
-async fn oauth2_me<T>(State(_): State<Arc<T>>) -> String
+async fn oauth2_me<T>(State(ct): State<Arc<T>>) -> String
 where
     T: ServiceProvider,
 {
-    unimplemented!()
+    let _ = ct.oauth2_authorization_service();
+    "".into()
 }
 
 pub fn routes<T>(t: Arc<T>) -> axum::Router
