@@ -91,7 +91,7 @@ pub async fn map_response(request: Request<Body>, next: Next) -> impl IntoRespon
                 let content =
                     ApiResponse::error(s, bodystr).into_json_string().unwrap_or_else(|e| {
                         tracing::warn!("Failed to serialize error response: {}", e);
-                        String::from(r#"{"code":422,"message":"Unprocessable Entity"}"#)
+                        String::from(r#"{"code":500,"message":"into_json_string failed"}"#)
                     });
                 parts.headers.extend([
                     (
