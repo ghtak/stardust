@@ -28,9 +28,9 @@ pub trait ApiKeyService: Sync + Send {
         query: &query::FindApiKeyUserQuery<'_>,
     ) -> impl Future<Output = stardust_common::Result<Option<entity::UserAggregate>>> + Send;
 
-    fn get_apikeys(
+    fn find_apikeys(
         &self,
-        query: &query::GetApiKeysQuery,
+        query: &query::FindApiKeysQuery,
     ) -> impl Future<Output = stardust_common::Result<Vec<entity::ApiKeyEntity>>> + Send;
 
     fn deactivate_apikey(

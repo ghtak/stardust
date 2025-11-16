@@ -110,7 +110,7 @@ where
 {
     let result = container
         .apikey_service()
-        .get_apikeys(&query::GetApiKeysQuery {
+        .find_apikeys(&query::FindApiKeysQuery {
             user_id: user.user.id,
         })
         .await?;

@@ -55,11 +55,11 @@ where
         return apikey_repo::find_user(&mut self.database.pool(), &query).await;
     }
 
-    async fn get_apikeys(
+    async fn find_apikeys(
         &self,
-        query: &query::GetApiKeysQuery,
+        query: &query::FindApiKeysQuery,
     ) -> stardust_common::Result<Vec<entity::ApiKeyEntity>> {
-        return apikey_repo::get_apikeys(&mut self.database.pool(), &query).await;
+        return apikey_repo::find_apikeys(&mut self.database.pool(), &query).await;
     }
 
     async fn deactivate_apikey(

@@ -90,9 +90,9 @@ pub async fn find_user(
     Ok(aggregate)
 }
 
-pub async fn get_apikeys(
+pub async fn find_apikeys(
     handle: &mut stardust_db::Handle<'_>,
-    q: &query::GetApiKeysQuery,
+    q: &query::FindApiKeysQuery,
 ) -> stardust_common::Result<Vec<entity::ApiKeyEntity>> {
     let mut builder = sqlx::QueryBuilder::new("SELECT * FROM stardust_apikey WHERE user_id = ");
     builder.push_bind(q.user_id);
