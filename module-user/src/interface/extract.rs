@@ -7,12 +7,12 @@ use axum::{
 use stardust_interface::http::ApiResponse;
 use tower_sessions::Session;
 
-use crate::{entity::UserAggregate, interface::ServiceProvider, query, service::ApiKeyService};
+use crate::{entity::UserEntity, interface::ServiceProvider, query, service::ApiKeyService};
 
 pub const APIKEY_HEADER_NAME: &str = "X-ApiKey";
 
 #[derive(Debug)]
-pub struct AuthUser(pub UserAggregate);
+pub struct AuthUser(pub UserEntity);
 
 impl<S> FromRequestParts<Arc<S>> for AuthUser
 where
@@ -27,16 +27,16 @@ where
     ) -> Result<Self, Self::Rejection> {
         if let Some(key_hash) = parts.headers.get(APIKEY_HEADER_NAME).and_then(|h| h.to_str().ok())
         {
-            if let Some(user) =
+            if let Some(apikey_user) =
                 s.apikey_service().find_user(&query::FindApiKeyUserQuery { key_hash }).await?
             {
-                return Ok(Self(user.user));
+                return Ok(Self(apikey_user.user));
             }
         }
         let session = Session::from_request_parts(parts, s)
             .await
             .map_err(|e| ApiResponse::error(e.0, e.1))?;
-        match stardust_interface::http::session::get_user::<UserAggregate>(&session).await? {
+        match stardust_interface::http::session::get_user::<UserEntity>(&session).await? {
             Some(user) => Ok(Self(user)),
             _ => Err(ApiResponse::error(StatusCode::UNAUTHORIZED, "Unauthorized")),
         }
@@ -63,7 +63,7 @@ where
 }
 
 impl Deref for AuthUser {
-    type Target = UserAggregate;
+    type Target = UserEntity;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -71,7 +71,7 @@ impl Deref for AuthUser {
 }
 
 #[derive(Debug)]
-pub struct AdminUser(pub UserAggregate);
+pub struct AdminUser(pub UserEntity);
 
 impl<S> FromRequestParts<Arc<S>> for AdminUser
 where
@@ -86,7 +86,7 @@ where
     ) -> Result<Self, Self::Rejection> {
         match <AuthUser as FromRequestParts<Arc<S>>>::from_request_parts(parts, s).await {
             Ok(authuser) => {
-                if authuser.user.role == crate::entity::Role::Admin {
+                if authuser.0.role == crate::entity::Role::Admin {
                     Ok(Self(authuser.0))
                 } else {
                     Err(ApiResponse::error(StatusCode::FORBIDDEN, "Forbidden"))

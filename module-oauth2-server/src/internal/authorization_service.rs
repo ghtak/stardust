@@ -162,7 +162,7 @@ where
         let client = self.verify(&command.verify_command).await?;
         let authorization = entity::OAuth2AuthorizationEntity::new(
             client.id,
-            command.principal.user.id,
+            command.principal.id,
             command.verify_command.scope.to_owned(),
             command.verify_command.state.to_owned(),
         );

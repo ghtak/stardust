@@ -11,7 +11,7 @@ use tower_sessions::Session;
 use crate::{
     command::{self, CreateApiKeyCommand},
     entity,
-    interface::{ServiceProvider, dto, user::AuthUser},
+    interface::{ServiceProvider, dto, extract::AuthUser},
     query,
     service::{ApiKeyService, UserService},
 };
@@ -24,14 +24,13 @@ where
     T: ServiceProvider,
 {
     let command = signup_request.into();
-    let user: entity::UserAggregate =
+    let user_aggregate: entity::UserAggregate =
         container.user_service().signup(&command).await.map_err(|e| ApiResponse::from(e))?;
     Ok(ApiResponse::with(dto::UserDto {
-        uids: user.accounts.iter().map(|a| a.uid.clone()).collect(),
-        username: user.user.username,
-        email: user.user.email,
-        role: user.user.role.to_string(),
-        status: user.user.status.to_string(),
+        username: user_aggregate.user.username,
+        email: user_aggregate.user.email,
+        role: user_aggregate.user.role.to_string(),
+        status: user_aggregate.user.status.to_string(),
     }))
 }
 
@@ -44,16 +43,15 @@ where
     T: ServiceProvider,
 {
     let command = request.into();
-    let user: entity::UserAggregate =
+    let user_aggregate: entity::UserAggregate =
         container.user_service().login(&command).await.map_err(|e| ApiResponse::from(e))?;
 
-    session::store_user(&session, &user).await?;
+    session::store_user(&session, &user_aggregate.user).await?;
     Ok(ApiResponse::with(dto::UserDto {
-        uids: user.accounts.iter().map(|a| a.uid.clone()).collect(),
-        username: user.user.username,
-        email: user.user.email,
-        role: user.user.role.to_string(),
-        status: user.user.status.to_string(),
+        username: user_aggregate.user.username,
+        email: user_aggregate.user.email,
+        role: user_aggregate.user.role.to_string(),
+        status: user_aggregate.user.status.to_string(),
     }))
 }
 
@@ -73,11 +71,10 @@ where
     T: ServiceProvider,
 {
     Ok(ApiResponse::with(dto::UserDto {
-        uids: authuser.accounts.iter().map(|a| a.uid.clone()).collect(),
-        username: authuser.user.username,
-        email: authuser.user.email,
-        role: authuser.user.role.to_string(),
-        status: authuser.user.status.to_string(),
+        username: authuser.username,
+        email: authuser.email,
+        role: authuser.role.to_string(),
+        status: authuser.status.to_string(),
     }))
 }
 
@@ -90,7 +87,7 @@ where
     T: ServiceProvider,
 {
     let command = CreateApiKeyCommand {
-        user_id: user.user.id,
+        user_id: user.id,
         description: req.description,
     };
     let result = container.apikey_service().create_apikey(&command).await?;
@@ -111,7 +108,7 @@ where
     let result = container
         .apikey_service()
         .find_apikeys(&query::FindApiKeysQuery {
-            user_id: user.user.id,
+            user_id: user.id,
         })
         .await?;
     Ok(ApiResponse::with(
@@ -131,7 +128,7 @@ where
         .apikey_service()
         .deactivate_apikey(&command::DeactivateApiKeyCommand {
             apikey_id: id,
-            request_user_id: user.user.id,
+            request_user_id: user.id,
         })
         .await?;
     Ok(ApiResponse::with(result.into()))

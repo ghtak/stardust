@@ -60,7 +60,7 @@ pub struct ApiKeyEntity {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ApiKeyUserAggregate {
     pub apikey: ApiKeyEntity,
-    pub user: UserAggregate
+    pub user: UserEntity
 }
 
 

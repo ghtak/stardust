@@ -38,7 +38,6 @@ pub struct UserDto {
     pub email: String,
     pub role: String,
     pub status: String,
-    pub uids: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

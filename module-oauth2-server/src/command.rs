@@ -1,4 +1,4 @@
-use module_user::entity::UserAggregate;
+use module_user::entity::UserEntity;
 
 pub struct CreateOAuth2ClientCommand {
     pub name: String,
@@ -28,7 +28,7 @@ pub struct VerifyOAuth2AuthorizationCommand<'a> {
 }
 
 pub struct AuthorizeOAuth2Command<'a> {
-    pub principal: &'a UserAggregate,
+    pub principal: &'a UserEntity,
     pub verify_command: &'a VerifyOAuth2AuthorizationCommand<'a>,
 }
 

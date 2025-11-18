@@ -6,7 +6,7 @@ use axum::{
     response::{IntoResponse, Redirect},
     routing::{delete, get, post},
 };
-use module_user::interface::user::{AdminUser, AuthUser};
+use module_user::interface::extract::{AdminUser, AuthUser};
 use stardust_interface::http::ApiResponse;
 
 use crate::{
@@ -81,7 +81,7 @@ where
     let entity = ct
         .oauth2_authorization_service()
         .authorize(&command::AuthorizeOAuth2Command {
-            principal: &user,
+            principal: &user.0,
             verify_command: &req.as_verify_command(),
         })
         .await?;

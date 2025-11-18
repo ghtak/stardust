@@ -75,15 +75,9 @@ impl From<OAuth2AuthorizationModel> for entity::OAuth2AuthorizationEntity {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 
 pub struct OAuth2AuthorizationUserModel {
-    #[sqlx(json, rename = "authorization_json")]
-    pub authorization: OAuth2AuthorizationModel,
-
     #[sqlx(json, rename = "client_json")]
     pub client: OAuth2ClientModel,
 
     #[sqlx(json, rename = "user_json")]
     pub user: module_user::infra::model::UserModel,
-
-    #[sqlx(json, rename = "account_json")]
-    pub account: module_user::infra::model::UserAccountModel,
 }

@@ -91,7 +91,4 @@ pub struct ApiKeyUserModel {
 
     #[sqlx(json, rename = "user_json")]
     pub user: UserModel,
-
-    #[sqlx(json, rename = "account_json")]
-    pub account: UserAccountModel,
 }

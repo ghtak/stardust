@@ -1,7 +1,7 @@
 pub mod container;
 pub mod dto;
 pub mod http;
-pub mod user;
+pub mod extract;
 
 use std::sync::Arc;
 

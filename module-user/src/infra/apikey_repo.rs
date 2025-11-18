@@ -58,8 +58,7 @@ pub async fn find_user(
         r#"
         select
             row_to_json(sa) as apikey_json,
-            row_to_json(u) as user_json,
-            row_to_json(ua) as account_json
+            row_to_json(u) as user_json
         from stardust_apikey sa
         left join stardust_user u on sa.user_id  = u.id
         left join stardust_user_account ua on u.id = ua.user_id
@@ -67,38 +66,19 @@ pub async fn find_user(
     "#,
     );
     builder.push_bind(query.key_hash).push(" AND deactivated_at IS NULL");
-
-    let rows = builder
+    let row = builder
         .build_query_as::<model::ApiKeyUserModel>()
-        .fetch_all(handle.executor())
+        .fetch_optional(handle.executor())
         .await
         .map_err(stardust_db::into_error)?;
 
-    if rows.is_empty() {
+    let Some(row) = row else {
         return Ok(None);
-    }
-    let mut apikey: Option<entity::ApiKeyEntity> = None;
-    let mut aggregate: Option<entity::UserAggregate> = None;
-    for r in rows {
-        tracing::info!("row {:?}", &r);
-        if apikey.is_none() {
-            apikey = Some(r.apikey.into());
-        }
-        let agg = aggregate.get_or_insert_with(|| entity::UserAggregate {
-            user: r.user.into(),
-            accounts: Vec::new(),
-        });
-
-        agg.accounts.push(r.account.into());
-    }
-
-    if apikey.is_none() {
-        return Ok(None);
-    }
+    };
 
     Ok(Some(entity::ApiKeyUserAggregate {
-        apikey: apikey.unwrap(),
-        user: aggregate.unwrap(),
+        apikey: row.apikey.into(),
+        user: row.user.into(),
     }))
 }
 

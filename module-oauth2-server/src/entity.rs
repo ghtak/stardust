@@ -82,7 +82,6 @@ pub struct OAuth2Token {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct OAuthUserAggregate {
-    pub user: module_user::entity::UserAggregate,
+    pub user: module_user::entity::UserEntity,
     pub client: OAuth2ClientEntity,
-    pub authorization: OAuth2AuthorizationEntity,
 }

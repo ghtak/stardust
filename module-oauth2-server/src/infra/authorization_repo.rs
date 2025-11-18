@@ -134,52 +134,28 @@ pub async fn find_user(
     let mut builder = sqlx::QueryBuilder::new(
         r#"
         select
-            row_to_json(oa) as authorization_json,
             row_to_json(c) as client_json,
-            row_to_json(u) as user_json,
-            row_to_json(ua) as account_json
+            row_to_json(u) as user_json
         from oauth2_authorization oa
         left join stardust_user u on oa.principal_id = u.id
-        left join stardust_user_account ua on oa.principal_id = ua.user_id
         left join oauth2_client c on oa.oauth2_client_id = c.id
         where oa.access_token_value =
     "#,
     );
     builder.push_bind(query.access_token);
 
-    let rows = builder
+    let row = builder
         .build_query_as::<model::OAuth2AuthorizationUserModel>()
-        .fetch_all(handle.executor())
+        .fetch_optional(handle.executor())
         .await
         .map_err(stardust_db::into_error)?;
 
-    if rows.is_empty() {
+    let Some(row) = row else {
         return Ok(None);
-    }
+    };
 
-    let mut authorization: Option<entity::OAuth2AuthorizationEntity> = None;
-    let mut client: Option<entity::OAuth2ClientEntity> = None;
-    let mut user_aggregate: Option<module_user::entity::UserAggregate> = None;
-
-    for r in rows {
-        if authorization.is_none() {
-            authorization = Some(r.authorization.into());
-        }
-        if client.is_none() {
-            client = Some(r.client.into());
-        }
-        let agg = user_aggregate.get_or_insert_with(|| module_user::entity::UserAggregate {
-            user: r.user.into(),
-            accounts: Vec::new(),
-        });
-        agg.accounts.push(r.account.into());
-    }
-    if authorization.is_none() {
-        return Ok(None);
-    }
     Ok(Some(entity::OAuthUserAggregate {
-        client: client.unwrap(),
-        user: user_aggregate.unwrap(),
-        authorization: authorization.unwrap(),
+        client: row.client.into(),
+        user: row.user.into(),
     }))
 }
