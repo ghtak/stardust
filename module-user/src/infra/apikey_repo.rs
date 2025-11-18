@@ -57,8 +57,8 @@ pub async fn find_user(
     let mut builder = sqlx::QueryBuilder::new(
         r#"
         select
-            row_to_json(sa) as apikey_json,
-            row_to_json(u) as user_json
+            sa.id as apikey_id,
+            u.*
         from stardust_apikey sa
         left join stardust_user u on sa.user_id  = u.id
         left join stardust_user_account ua on u.id = ua.user_id
@@ -77,7 +77,7 @@ pub async fn find_user(
     };
 
     Ok(Some(entity::ApiKeyUserAggregate {
-        apikey: row.apikey.into(),
+        apikey_id: row.apikey_id,
         user: row.user.into(),
     }))
 }

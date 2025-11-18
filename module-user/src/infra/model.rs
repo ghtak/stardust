@@ -86,9 +86,8 @@ impl From<ApiKeyModel> for crate::entity::ApiKeyEntity {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct ApiKeyUserModel {
-    #[sqlx(json, rename = "apikey_json")]
-    pub apikey: ApiKeyModel,
+    pub apikey_id : i64,
 
-    #[sqlx(json, rename = "user_json")]
+    #[sqlx(flatten)]
     pub user: UserModel,
 }

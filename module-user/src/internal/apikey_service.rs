@@ -68,7 +68,7 @@ where
         tracing::info!("result {:?}", &result);
         match result {
             Ok(Some(ref user)) => {
-                self.tracker.track_usage(user.apikey.id).await?;
+                self.tracker.track_usage(user.apikey_id).await?;
             }
             _ => {}
         }
