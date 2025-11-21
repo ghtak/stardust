@@ -3,21 +3,29 @@ use std::sync::Arc;
 use crate::{
     command::{LoginCommand, SignupCommand},
     entity,
-    infra::user_repo,
     query,
 };
 
-pub struct UserServiceImpl<Hasher> {
-    database: stardust_db::Database,
+use stardust_db::database::Handle;
+
+pub struct UserServiceImpl<Database, Hasher, UserRepo> {
+    database: Database,
     hasher: Arc<Hasher>,
+    user_repo: Arc<UserRepo>,
 }
 
-impl<Hasher> UserServiceImpl<Hasher>
+impl<Database, Hasher, UserRepo> UserServiceImpl<Database, Hasher, UserRepo>
 where
+    Database: stardust_db::database::Database,
     Hasher: stardust_common::hash::Hasher,
+    UserRepo: for<'h> crate::repository::UserRepository<Handle<'h> = Database::Handle<'h>>,
 {
-    pub fn new(database: stardust_db::Database, hasher: Arc<Hasher>) -> Self {
-        Self { database, hasher }
+    pub fn new(database: Database, hasher: Arc<Hasher>, user_repo: Arc<UserRepo>) -> Self {
+        Self {
+            database,
+            hasher,
+            user_repo,
+        }
     }
 
     pub async fn rehash_password(&self, user_accout: &entity::UserAccountEntity, password: &str) {
@@ -25,9 +33,10 @@ where
             Ok(hash) => {
                 let mut save_user_account = user_accout.clone();
                 save_user_account.password_hash = hash;
-                if let Err(e) =
-                    user_repo::save_user_account(&mut self.database.pool(), &save_user_account)
-                        .await
+                if let Err(e) = self
+                    .user_repo
+                    .save_user_account(&mut self.database.handle(), &save_user_account)
+                    .await
                 {
                     tracing::warn!("failed to save user account: {:?}", e);
                 }
@@ -40,9 +49,11 @@ where
 }
 
 #[async_trait::async_trait]
-impl<Hasher> crate::service::UserService for UserServiceImpl<Hasher>
+impl<Database, Hasher, UserRepo> crate::service::UserService for UserServiceImpl<Database, Hasher, UserRepo>
 where
+    Database: stardust_db::database::Database + 'static,
     Hasher: stardust_common::hash::Hasher,
+    UserRepo: for<'h> crate::repository::UserRepository<Handle<'h> = Database::Handle<'h>>,
 {
     async fn hello(&self) -> String {
         "hello".into()
@@ -52,15 +63,15 @@ where
         &self,
         command: &SignupCommand,
     ) -> stardust_common::Result<entity::UserAggregate> {
-        if let Some(user) = user_repo::find_user(
-            &mut self.database.pool(),
+        if let Some(user) = self.user_repo.find_user(
+            &mut self.database.handle(),
             &crate::query::FindUserQuery::by_email(command.email()),
         )
         .await?
         {
             return Err(stardust_common::Error::Duplicate(Some(user.email)));
         }
-        let mut handle = self.database.transaction().await?;
+        let mut handle = self.database.tx_handle().await?;
         let now = chrono::Utc::now();
         let user_entity = entity::UserEntity {
             id: 0,
@@ -71,7 +82,7 @@ where
             created_at: now,
             updated_at: now,
         };
-        let user_entity = user_repo::create_user(&mut handle, &user_entity).await?;
+        let user_entity = self.user_repo.create_user(&mut handle, &user_entity).await?;
 
         let password_hash = self.hasher.hash(command.password())?;
         let user_account_entity = entity::UserAccountEntity {
@@ -83,7 +94,7 @@ where
             updated_at: now,
         };
         let _account_entity =
-            user_repo::create_user_account(&mut handle, &user_account_entity).await?;
+            self.user_repo.create_user_account(&mut handle, &user_account_entity).await?;
         handle.commit().await?;
         stardust_core::audit(
             user_entity.id,
@@ -104,7 +115,7 @@ where
             LoginCommand::Local { email, password } => {
                 let query = query::FindUserQuery::by_email(email);
                 let Some(user) =
-                    user_repo::find_user_aggregate(&mut self.database.pool(), &query).await?
+                    self.user_repo.find_user_aggregate(&mut self.database.handle(), &query).await?
                 else {
                     return Err(stardust_common::Error::Unauthorized);
                 };

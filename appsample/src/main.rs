@@ -26,16 +26,26 @@ async fn build_container() -> Arc<app::Container> {
     stardust_core::audit(0, "sys.init", serde_json::Value::Null);
     let database = stardust_db::Database::open(&config.database).await.unwrap();
     let hasher = Arc::new(app::HasherImpl::default());
-    let user_service = Arc::new(app::UserServiceImpl::new(database.clone(), hasher.clone()));
 
-    let apikey_usage_tracker = app::ApiKeyUsageTrackerImpl::new(database.clone());
+    let pgdb = app::DatabaseImpl::new(&config.database).await.unwrap();
+    let user_repo = Arc::new(app::UserRepositoryImpl::new());
+
+    let user_service = Arc::new(app::UserServiceImpl::new(
+        pgdb.clone(),
+        hasher.clone(),
+        user_repo,
+    ));
+
+    let apikey_usage_tracker = app::ApiKeyUsageTrackerImpl::new(pgdb.clone());
+    let apikey_repo = Arc::new(app::ApiKeyRepositoryImpl::new());
 
     let apikey_service = Arc::new(app::ApikeyServiceImpl::new(
-        database.clone(),
+        pgdb.clone(),
         hasher.clone(),
+        apikey_repo.clone(),
         apikey_usage_tracker.clone(),
     ));
-    
+
     let user_container = Arc::new(app::UserContaierImpl::new(
         user_service.clone(),
         apikey_service.clone(),
@@ -55,7 +65,13 @@ async fn build_container() -> Arc<app::Container> {
         oauth2_client_service.clone(),
         oauth2_authorization_service.clone(),
     ));
-    let container = app::Container::new(config, database, user_container, oauth2_server_container);
+    let container = app::Container::new(
+        config,
+        database,
+        user_container,
+        oauth2_server_container,
+        pgdb,
+    );
     Arc::new(container)
 }
 

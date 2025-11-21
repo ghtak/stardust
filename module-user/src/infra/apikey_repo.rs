@@ -1,3 +1,5 @@
+use stardust_db::internal::postgres;
+
 use crate::{entity, infra::model, query};
 
 pub async fn create_table(handle: &mut stardust_db::Handle<'_>) -> stardust_common::Result<()> {
@@ -23,7 +25,7 @@ pub async fn create_table(handle: &mut stardust_db::Handle<'_>) -> stardust_comm
 }
 
 pub async fn create_apikey(
-    handle: &mut stardust_db::Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     entity: &entity::ApiKeyEntity,
 ) -> stardust_common::Result<entity::ApiKeyEntity> {
     let mut builder = sqlx::QueryBuilder::new(
@@ -51,7 +53,7 @@ pub async fn create_apikey(
 }
 
 pub async fn find_user(
-    handle: &mut stardust_db::Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     query: &query::FindApiKeyUserQuery<'_>,
 ) -> stardust_common::Result<Option<entity::ApiKeyUserAggregate>> {
     let mut builder = sqlx::QueryBuilder::new(
@@ -83,7 +85,7 @@ pub async fn find_user(
 }
 
 pub async fn find_apikeys(
-    handle: &mut stardust_db::Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     q: &query::FindApiKeysQuery,
 ) -> stardust_common::Result<Vec<entity::ApiKeyEntity>> {
     let mut builder = sqlx::QueryBuilder::new("SELECT * FROM stardust_apikey WHERE user_id = ");
@@ -99,7 +101,7 @@ pub async fn find_apikeys(
 }
 
 pub async fn get_apikey(
-    handle: &mut stardust_db::Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     id: i64,
 ) -> stardust_common::Result<Option<entity::ApiKeyEntity>> {
     let mut builder = sqlx::QueryBuilder::new("SELECT * FROM stardust_apikey WHERE id = ");
@@ -115,7 +117,7 @@ pub async fn get_apikey(
 }
 
 pub async fn save_apikey(
-    handle: &mut stardust_db::Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     entity: &entity::ApiKeyEntity,
 ) -> stardust_common::Result<entity::ApiKeyEntity> {
     let mut builder = sqlx::QueryBuilder::new("UPDATE stardust_apikey SET ");
@@ -144,7 +146,7 @@ pub async fn save_apikey(
 }
 
 pub async fn update_last_used_at(
-    handle: &mut stardust_db::Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     id: i64,
     last_used_at: chrono::DateTime<chrono::Utc>,
 ) -> stardust_common::Result<()> {
@@ -160,4 +162,91 @@ pub async fn update_last_used_at(
         .await
         .map_err(stardust_db::into_error)?;
     Ok(())
+}
+
+pub struct PostgresApiKeyRepository {}
+
+impl PostgresApiKeyRepository {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+#[async_trait::async_trait]
+impl crate::repository::ApiKeyRepository for PostgresApiKeyRepository {
+    type Handle<'h> = stardust_db::internal::postgres::Handle<'h>;
+
+    async fn create_table(
+        &self,
+        handle: &mut stardust_db::Handle<'_>,
+    ) -> stardust_common::Result<()> {
+        sqlx::query(
+            r#"
+            create table if not exists stardust_apikey (
+                id BIGSERIAL PRIMARY KEY,
+                user_id BIGINT not null,
+                key_hash varchar(255) not null,
+                prefix varchar(255) not null,
+                description varchar(255) not null,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_used_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                deactivated_at TIMESTAMPTZ
+            );
+        "#,
+        )
+        .execute(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+        Ok(())
+    }
+
+    async fn create_apikey(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        entity: &entity::ApiKeyEntity,
+    ) -> stardust_common::Result<entity::ApiKeyEntity> {
+        create_apikey(handle, entity).await
+    }
+
+    async fn find_user(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        query: &query::FindApiKeyUserQuery<'_>,
+    ) -> stardust_common::Result<Option<entity::ApiKeyUserAggregate>> {
+        find_user(handle, query).await
+    }
+
+    async fn find_apikeys(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        q: &query::FindApiKeysQuery,
+    ) -> stardust_common::Result<Vec<entity::ApiKeyEntity>> {
+        find_apikeys(handle, q).await
+    }
+
+    async fn get_apikey(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        id: i64,
+    ) -> stardust_common::Result<Option<entity::ApiKeyEntity>> {
+        get_apikey(handle, id).await
+    }
+
+    async fn save_apikey(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        entity: &entity::ApiKeyEntity,
+    ) -> stardust_common::Result<entity::ApiKeyEntity> {
+        save_apikey(handle, entity).await
+    }
+
+    async fn update_last_used_at(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        id: i64,
+        last_used_at: chrono::DateTime<chrono::Utc>,
+    ) -> stardust_common::Result<()> {
+        update_last_used_at(handle, id, last_used_at).await
+    }
 }

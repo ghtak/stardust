@@ -2,36 +2,44 @@ use std::sync::Arc;
 
 use stardust_common::With;
 
-use crate::{command, entity, infra::apikey_repo, query, service::ApiKeyService};
+use crate::{command, entity, query, service::ApiKeyService};
 
-pub struct ApikeyServiceImpl<Hasher, Tracker> {
-    database: stardust_db::Database,
+pub struct ApikeyServiceImpl<Database, Hasher, ApiKeyRepo, Tracker> {
+    database: Database,
     hasher: Arc<Hasher>,
+    apikey_repo: Arc<ApiKeyRepo>,
     tracker: Arc<Tracker>,
 }
 
-impl<Hasher, Tracker> ApikeyServiceImpl<Hasher, Tracker>
+impl<Database, Hasher, ApiKeyRepo, Tracker> ApikeyServiceImpl<Database, Hasher, ApiKeyRepo, Tracker>
 where
+    Database: stardust_db::database::Database,
     Hasher: stardust_common::hash::Hasher,
     Tracker: crate::service::ApiKeyUsageTracker,
+    ApiKeyRepo: for<'h> crate::repository::ApiKeyRepository<Handle<'h> = Database::Handle<'h>>,
 {
     pub fn new(
-        database: stardust_db::Database,
+        database: Database,
         hasher: Arc<Hasher>,
+        apikey_repo: Arc<ApiKeyRepo>,
         tracker: Arc<Tracker>,
     ) -> Self {
         Self {
             database,
             hasher,
+            apikey_repo,
             tracker,
         }
     }
 }
 
-impl<Hasher, Tracker> ApiKeyService for ApikeyServiceImpl<Hasher, Tracker>
+impl<Database, Hasher, ApiKeyRepo, Tracker> ApiKeyService
+    for ApikeyServiceImpl<Database, Hasher, ApiKeyRepo, Tracker>
 where
+    Database: stardust_db::database::Database + 'static,
     Hasher: stardust_common::hash::Hasher,
     Tracker: crate::service::ApiKeyUsageTracker,
+    ApiKeyRepo: for<'h> crate::repository::ApiKeyRepository<Handle<'h> = Database::Handle<'h>>,
 {
     async fn create_apikey(
         &self,
@@ -51,7 +59,7 @@ where
             last_used_at: now,
             deactivated_at: None,
         };
-        let entity = apikey_repo::create_apikey(&mut self.database.pool(), &entity).await?;
+        let entity = self.apikey_repo.create_apikey(&mut self.database.handle(), &entity).await?;
         stardust_core::audit(entity.user_id, "apikey.created", serde_json::json!(entity));
         Ok(With {
             inner: key,
@@ -64,7 +72,7 @@ where
         query: &query::FindApiKeyUserQuery<'_>,
     ) -> stardust_common::Result<Option<entity::ApiKeyUserAggregate>> {
         tracing::info!("find_user {:?}", &query);
-        let result = apikey_repo::find_user(&mut self.database.pool(), &query).await;
+        let result = self.apikey_repo.find_user(&mut self.database.handle(), &query).await;
         tracing::info!("result {:?}", &result);
         match result {
             Ok(Some(ref user)) => {
@@ -79,14 +87,15 @@ where
         &self,
         query: &query::FindApiKeysQuery,
     ) -> stardust_common::Result<Vec<entity::ApiKeyEntity>> {
-        return apikey_repo::find_apikeys(&mut self.database.pool(), &query).await;
+        return self.apikey_repo.find_apikeys(&mut self.database.handle(), &query).await;
     }
 
     async fn deactivate_apikey(
         &self,
         command: &command::DeactivateApiKeyCommand,
     ) -> stardust_common::Result<entity::ApiKeyEntity> {
-        let result = apikey_repo::get_apikey(&mut self.database.pool(), command.apikey_id).await?;
+        let result =
+            self.apikey_repo.get_apikey(&mut self.database.handle(), command.apikey_id).await?;
         if result.is_none() {
             return Err(stardust_common::Error::NotFound);
         }
@@ -98,7 +107,7 @@ where
             return Err(stardust_common::Error::Forbidden);
         }
         key.deactivated_at = Some(chrono::Utc::now());
-        let key = apikey_repo::save_apikey(&mut self.database.pool(), &key).await?;
+        let key = self.apikey_repo.save_apikey(&mut self.database.handle(), &key).await?;
         stardust_core::audit(key.user_id, "apikey.deactivated", serde_json::json!(key));
         Ok(key)
     }

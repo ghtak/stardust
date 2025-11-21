@@ -5,3 +5,4 @@ pub mod interface;
 pub mod internal;
 pub mod query;
 pub mod service;
+pub mod repository;
