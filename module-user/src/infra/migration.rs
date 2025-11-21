@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use stardust_db::{
-    database::{Database, Handle},
-    internal::postgres,
-};
+use stardust_db::database::{Database, Handle};
 
 use crate::{
     entity,
@@ -13,7 +10,7 @@ use crate::{
 const NAME: &str = "user_migration";
 
 pub async fn migrate<US>(
-    database: postgres::Database,
+    database: stardust_core::migration::DatabaseImpl,
     user_service: Arc<US>,
 ) -> stardust_common::Result<()>
 where

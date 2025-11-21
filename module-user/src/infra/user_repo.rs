@@ -6,7 +6,9 @@ use crate::{
     query,
 };
 
-pub async fn create_table(handle: &mut postgres::Handle<'_>) -> stardust_common::Result<()> {
+pub async fn create_table(
+    handle: &mut stardust_core::migration::DatabaseHandleImpl<'_>,
+) -> stardust_common::Result<()> {
     sqlx::query(
         r#"
             create table if not exists stardust_user (
