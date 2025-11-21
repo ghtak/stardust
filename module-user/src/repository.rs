@@ -82,3 +82,16 @@ pub trait ApiKeyRepository: Sync + Send {
         last_used_at: chrono::DateTime<chrono::Utc>,
     ) -> stardust_common::Result<()>;
 }
+
+#[async_trait::async_trait]
+pub trait MigrationRepository: Sync + Send {
+    type Handle<'h>;
+
+    async fn create_user_store(&self, handle: &mut Self::Handle<'_>)
+    -> stardust_common::Result<()>;
+
+    async fn create_apikey_store(
+        &self,
+        handle: &mut Self::Handle<'_>,
+    ) -> stardust_common::Result<()>;
+}

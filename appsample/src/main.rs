@@ -7,13 +7,17 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-use module_user::interface::ServiceProvider;
+use module_user::{interface::ServiceProvider, service::MigrationService};
+use stardust_core::repository::MigrationRepository;
+use stardust_db::database::Database;
 use stardust_interface::http::{
     ApiResponse,
     utils::{into_string, is_json_content},
 };
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::info_span;
+
+use crate::app::UserMigrationServiceImpl;
 
 mod app;
 mod container;
@@ -72,27 +76,25 @@ async fn build_container() -> Arc<app::Container> {
         oauth2_authorization_service.clone(),
     ));
 
-    let container = app::Container::new(
-        config,
-        database,
-        user_container,
-        oauth2_server_container,
-    );
+    let container = app::Container::new(config, database, user_container, oauth2_server_container);
     Arc::new(container)
 }
 
 async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
-    match stardust_core::migration::migrate(ct.database.clone()).await {
+    let migration_repo = Arc::new(app::MigrationRepositoryImpl::new());
+    match migration_repo.create_table(&mut ct.database.handle()).await {
         Ok(_) => println!("Migration successful"),
         Err(e) => eprintln!("Migration failed: {}", e),
     };
 
-    match module_user::infra::migration::migrate(
+    let user_migration = UserMigrationServiceImpl::new(
         ct.database.clone(),
         ct.user_container.user_service(),
-    )
-    .await
-    {
+        Arc::new(app::UserMigrationRepositoryImpl::new()),
+        migration_repo.clone(),
+    );
+
+    match user_migration.migrate().await {
         Ok(_) => println!("User module migration successful"),
         Err(e) => eprintln!("User module migration failed: {}", e),
     }

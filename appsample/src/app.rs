@@ -47,6 +47,18 @@ pub mod dev_env {
         OAuth2AuthorizationServiceImpl,
     >;
 
+    pub type MigrationRepositoryImpl = stardust_core::infra::migration_repo::PostgresMigrationRepository;
+    pub type UserMigrationRepositoryImpl =
+        module_user::infra::migration_repo::PostgresMigrationRepository;
+
+    pub type UserMigrationServiceImpl = module_user::internal::MigrationServiceImpl<
+        DatabaseImpl,
+        UserServiceImpl,
+        UserMigrationRepositoryImpl,
+        MigrationRepositoryImpl,
+    >;
+
+
     pub type Container =
         crate::container::Container<DatabaseImpl, UserContaierImpl, OAuth2ServerContainerImpl>;
 }

@@ -13,3 +13,4 @@ stardust-common = { path = "../stardust-common" }
 stardust-db = { path = "../stardust-db" }
 serde_json = "1.0.145"
 tracing = "0.1.41"
+async-trait = "0.1.89"
