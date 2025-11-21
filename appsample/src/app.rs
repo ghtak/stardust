@@ -24,8 +24,11 @@ pub mod dev_env {
     pub type OAuth2ClientRepositoryImpl =
         module_oauth2_server::infra::client_repo::PostgresClientRepository;
 
-    pub type OAuth2ClientServiceImpl =
-        module_oauth2_server::internal::OAuth2ClientServiceImpl<DatabaseImpl, HasherImpl, OAuth2ClientRepositoryImpl>;
+    pub type OAuth2ClientServiceImpl = module_oauth2_server::internal::OAuth2ClientServiceImpl<
+        DatabaseImpl,
+        HasherImpl,
+        OAuth2ClientRepositoryImpl,
+    >;
 
     pub type OAuth2AuthorizationRepositoryImpl =
         module_oauth2_server::infra::authorization_repo::PostgresAuthorizationRepository;
@@ -44,7 +47,8 @@ pub mod dev_env {
         OAuth2AuthorizationServiceImpl,
     >;
 
-    pub type Container = crate::container::Container<UserContaierImpl, OAuth2ServerContainerImpl>;
+    pub type Container =
+        crate::container::Container<DatabaseImpl, UserContaierImpl, OAuth2ServerContainerImpl>;
 }
 
 pub use dev_env::*;

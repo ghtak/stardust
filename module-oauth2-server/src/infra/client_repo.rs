@@ -1,8 +1,8 @@
-use stardust_db::{Handle, internal::postgres};
+use stardust_db::internal::postgres;
 
 use crate::{command, entity, infra::model, query};
 
-pub async fn create_table(handle: &mut Handle<'_>) -> stardust_common::Result<()> {
+pub async fn create_table(handle: &mut postgres::Handle<'_>) -> stardust_common::Result<()> {
     sqlx::query(
         r#"
             CREATE TABLE IF NOT EXISTS oauth2_client (
@@ -98,29 +98,6 @@ impl PostgresClientRepository {
 impl crate::repository::ClientRepository for PostgresClientRepository {
     type Handle<'h> = postgres::Handle<'h>;
 
-    async fn create_table(&self, handle: &mut Self::Handle<'_>) -> stardust_common::Result<()> {
-        sqlx::query(
-            r#"
-            CREATE TABLE IF NOT EXISTS oauth2_client (
-                id BIGSERIAL PRIMARY KEY,
-                client_id VARCHAR(255) UNIQUE NOT NULL,
-                client_secret_hash VARCHAR(255) NOT NULL,
-                name VARCHAR(255) NOT NULL,
-                redirect_uris TEXT NOT NULL,
-                grant_types TEXT NOT NULL,
-                auth_methods TEXT NOT NULL,
-                scopes TEXT NOT NULL,
-                token_settings JSONB NOT NULL,
-                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            );
-        "#,
-        )
-        .execute(handle.executor())
-        .await
-        .map_err(stardust_db::into_error)?;
-        Ok(())
-    }
-
     async fn create_client(
         &self,
         handle: &mut Self::Handle<'_>,
@@ -141,7 +118,7 @@ impl crate::repository::ClientRepository for PostgresClientRepository {
         &self,
         handle: &mut Self::Handle<'_>,
         command: &command::DeleteOAuth2ClientCommand,
-    ) -> stardust_common::Result<()>{
+    ) -> stardust_common::Result<()> {
         delete_client(handle, command).await
     }
 }

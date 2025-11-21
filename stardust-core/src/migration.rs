@@ -1,13 +1,15 @@
+use stardust_db::{database::Database, internal::postgres};
+
 use crate::infra;
 
-pub async fn migrate(database: stardust_db::Database) -> stardust_common::Result<()> {
-    let mut handle = database.pool();
+pub async fn migrate(database: postgres::Database) -> stardust_common::Result<()> {
+    let mut handle = database.handle();
     infra::migration_repo::create_table(&mut handle).await?;
     Ok(())
 }
 
 pub async fn get_latest(
-    handle: &mut stardust_db::Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     name: &str,
 ) -> stardust_common::Result<infra::migration_repo::MigrationModel> {
     let result = infra::migration_repo::get_latest(handle, name).await?;
@@ -20,7 +22,7 @@ pub async fn get_latest(
 }
 
 pub async fn save(
-    handle: &mut stardust_db::Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     name: &str,
     version: i32,
     description: &str,

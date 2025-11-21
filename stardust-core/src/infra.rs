@@ -1,4 +1,6 @@
 pub mod migration_repo {
+    use stardust_db::internal::postgres;
+
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
     pub struct MigrationModel {
         pub name: String,
@@ -7,7 +9,7 @@ pub mod migration_repo {
         pub updated_at: chrono::DateTime<chrono::Utc>,
     }
 
-    pub async fn create_table(handle: &mut stardust_db::Handle<'_>) -> stardust_common::Result<()> {
+    pub async fn create_table(handle: &mut postgres::Handle<'_>) -> stardust_common::Result<()> {
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS stardust_migration (
@@ -25,7 +27,7 @@ pub mod migration_repo {
     }
 
     pub async fn create(
-        handle: &mut stardust_db::Handle<'_>,
+        handle: &mut postgres::Handle<'_>,
         model: &MigrationModel,
     ) -> stardust_common::Result<MigrationModel> {
         let mut builder = sqlx::QueryBuilder::new(
@@ -47,7 +49,7 @@ pub mod migration_repo {
     }
 
     pub async fn get_all(
-        handle: &mut stardust_db::Handle<'_>,
+        handle: &mut postgres::Handle<'_>,
     ) -> stardust_common::Result<Vec<MigrationModel>> {
         let rows = sqlx::QueryBuilder::new("SELECT * FROM stardust_migration")
             .build_query_as::<MigrationModel>()
@@ -58,7 +60,7 @@ pub mod migration_repo {
     }
 
     pub async fn get_latest(
-        handle: &mut stardust_db::Handle<'_>,
+        handle: &mut postgres::Handle<'_>,
         name: &str,
     ) -> stardust_common::Result<Option<MigrationModel>> {
         let row = sqlx::QueryBuilder::new("SELECT * FROM stardust_migration WHERE ")

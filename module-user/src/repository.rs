@@ -4,8 +4,6 @@ use crate::{entity, query};
 pub trait UserRepository: Sync + Send {
     type Handle<'h>;
 
-    async fn create_table(&self, handle: &mut Self::Handle<'_>) -> stardust_common::Result<()>;
-
     async fn create_user(
         &self,
         handle: &mut Self::Handle<'_>,
@@ -46,11 +44,6 @@ pub trait UserRepository: Sync + Send {
 #[async_trait::async_trait]
 pub trait ApiKeyRepository: Sync + Send {
     type Handle<'h>;
-
-    async fn create_table(
-        &self,
-        handle: &mut Self::Handle<'_>,
-    ) -> stardust_common::Result<()>;
 
     async fn create_apikey(
         &self,

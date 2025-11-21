@@ -1,9 +1,14 @@
+use stardust_db::{
+    database::{Database, Handle},
+    internal::postgres,
+};
+
 use crate::infra::{authorization_repo, client_repo};
 
 const NAME: &str = "oauth2_server_migration";
 
-pub async fn migrate(database: stardust_db::Database) -> stardust_common::Result<()> {
-    let mut handle = database.transaction().await?;
+pub async fn migrate(database: postgres::Database) -> stardust_common::Result<()> {
+    let mut handle = database.tx_handle().await?;
     let mut migration = stardust_core::migration::get_latest(&mut handle, NAME).await?;
 
     if migration.version == 0 {

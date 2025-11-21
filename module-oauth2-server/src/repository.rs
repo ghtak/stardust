@@ -4,8 +4,6 @@ use crate::{command, entity, query};
 pub trait ClientRepository: Sync + Send {
     type Handle<'h>;
 
-    async fn create_table(&self, handle: &mut Self::Handle<'_>) -> stardust_common::Result<()>;
-
     async fn create_client(
         &self,
         handle: &mut Self::Handle<'_>,
@@ -28,8 +26,6 @@ pub trait ClientRepository: Sync + Send {
 #[async_trait::async_trait]
 pub trait AuthorizationRepository: Sync + Send {
     type Handle<'h>;
-
-    async fn create_table(&self, handle: &mut Self::Handle<'_>) -> stardust_common::Result<()>;
 
     async fn create_authorization(
         &self,

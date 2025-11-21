@@ -1,5 +1,10 @@
 use std::sync::Arc;
 
+use stardust_db::{
+    database::{Database, Handle},
+    internal::postgres,
+};
+
 use crate::{
     entity,
     infra::{apikey_repo, user_repo},
@@ -8,13 +13,13 @@ use crate::{
 const NAME: &str = "user_migration";
 
 pub async fn migrate<US>(
-    database: stardust_db::Database,
+    database: postgres::Database,
     user_service: Arc<US>,
 ) -> stardust_common::Result<()>
 where
     US: crate::service::UserService + 'static,
 {
-    let mut handle = database.transaction().await?;
+    let mut handle = database.tx_handle().await?;
     let mut migration = stardust_core::migration::get_latest(&mut handle, NAME).await?;
 
     if migration.version == 0 {
@@ -37,15 +42,15 @@ where
             })
             .await?;
         migration =
-            stardust_core::migration::save(&mut database.pool(), NAME, 2, "create admin user")
+            stardust_core::migration::save(&mut database.handle(), NAME, 2, "create admin user")
                 .await?;
     }
 
     if migration.version == 2 {
         tracing::info!("migration 2 begin");
-        apikey_repo::create_table(&mut database.pool()).await?;
+        apikey_repo::create_table(&mut database.handle()).await?;
         migration =
-            stardust_core::migration::save(&mut database.pool(), NAME, 3, "create apikey table")
+            stardust_core::migration::save(&mut database.handle(), NAME, 3, "create apikey table")
                 .await?;
     }
 
