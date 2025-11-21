@@ -1,6 +1,6 @@
-use stardust_db::Handle;
+use stardust_db::{Handle, internal::postgres};
 
-use crate::{entity, infra::model};
+use crate::{command, entity, infra::model, query};
 
 pub async fn create_table(handle: &mut Handle<'_>) -> stardust_common::Result<()> {
     sqlx::query(
@@ -26,7 +26,7 @@ pub async fn create_table(handle: &mut Handle<'_>) -> stardust_common::Result<()
 }
 
 pub async fn create_client(
-    handle: &mut Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     entity: &entity::OAuth2ClientEntity,
 ) -> stardust_common::Result<entity::OAuth2ClientEntity> {
     let mut querybuilder = sqlx::QueryBuilder::new(
@@ -56,7 +56,7 @@ pub async fn create_client(
 }
 
 pub async fn find_clients(
-    handle: &mut Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     query: &crate::query::FindOAuth2ClientQuery<'_>,
 ) -> stardust_common::Result<Vec<entity::OAuth2ClientEntity>> {
     let mut querybuilder = sqlx::QueryBuilder::new("SELECT * FROM oauth2_client where 1 = 1 ");
@@ -77,11 +77,71 @@ pub async fn find_clients(
 }
 
 pub async fn delete_client(
-    handle: &mut Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     command: &crate::command::DeleteOAuth2ClientCommand,
 ) -> stardust_common::Result<()> {
     let mut querybuilder = sqlx::QueryBuilder::new("DELETE FROM oauth2_client where id = ");
     querybuilder.push_bind(command.id);
     querybuilder.build().execute(handle.executor()).await.map_err(stardust_db::into_error)?;
     Ok(())
+}
+
+pub struct PostgresClientRepository {}
+
+impl PostgresClientRepository {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+#[async_trait::async_trait]
+impl crate::repository::ClientRepository for PostgresClientRepository {
+    type Handle<'h> = postgres::Handle<'h>;
+
+    async fn create_table(&self, handle: &mut Self::Handle<'_>) -> stardust_common::Result<()> {
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS oauth2_client (
+                id BIGSERIAL PRIMARY KEY,
+                client_id VARCHAR(255) UNIQUE NOT NULL,
+                client_secret_hash VARCHAR(255) NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                redirect_uris TEXT NOT NULL,
+                grant_types TEXT NOT NULL,
+                auth_methods TEXT NOT NULL,
+                scopes TEXT NOT NULL,
+                token_settings JSONB NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        "#,
+        )
+        .execute(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+        Ok(())
+    }
+
+    async fn create_client(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        entity: &entity::OAuth2ClientEntity,
+    ) -> stardust_common::Result<entity::OAuth2ClientEntity> {
+        create_client(handle, entity).await
+    }
+
+    async fn find_clients(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        query: &query::FindOAuth2ClientQuery<'_>,
+    ) -> stardust_common::Result<Vec<entity::OAuth2ClientEntity>> {
+        find_clients(handle, query).await
+    }
+
+    async fn delete_client(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        command: &command::DeleteOAuth2ClientCommand,
+    ) -> stardust_common::Result<()>{
+        delete_client(handle, command).await
+    }
 }

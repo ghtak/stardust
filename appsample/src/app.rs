@@ -21,12 +21,20 @@ pub mod dev_env {
     pub type UserContaierImpl =
         module_user::interface::container::Container<UserServiceImpl, ApikeyServiceImpl>;
 
+    pub type OAuth2ClientRepositoryImpl =
+        module_oauth2_server::infra::client_repo::PostgresClientRepository;
+
     pub type OAuth2ClientServiceImpl =
-        module_oauth2_server::internal::OAuth2ClientServiceImpl<HasherImpl>;
+        module_oauth2_server::internal::OAuth2ClientServiceImpl<DatabaseImpl, HasherImpl, OAuth2ClientRepositoryImpl>;
+
+    pub type OAuth2AuthorizationRepositoryImpl =
+        module_oauth2_server::infra::authorization_repo::PostgresAuthorizationRepository;
 
     pub type OAuth2AuthorizationServiceImpl =
         module_oauth2_server::internal::OAuth2AuthorizationServiceImpl<
+            DatabaseImpl,
             HasherImpl,
+            OAuth2AuthorizationRepositoryImpl,
             OAuth2ClientServiceImpl,
         >;
 

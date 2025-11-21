@@ -178,7 +178,7 @@ impl crate::repository::ApiKeyRepository for PostgresApiKeyRepository {
 
     async fn create_table(
         &self,
-        handle: &mut stardust_db::Handle<'_>,
+        handle: &mut Self::Handle<'_>,
     ) -> stardust_common::Result<()> {
         sqlx::query(
             r#"

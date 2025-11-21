@@ -1,4 +1,4 @@
-use stardust_db::Handle;
+use stardust_db::{Handle, internal::postgres};
 
 use crate::{
     entity,
@@ -36,7 +36,7 @@ pub async fn create_table(handle: &mut Handle<'_>) -> stardust_common::Result<()
 }
 
 pub async fn create_authorization(
-    handle: &mut Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     entity: &crate::entity::OAuth2AuthorizationEntity,
 ) -> stardust_common::Result<crate::entity::OAuth2AuthorizationEntity> {
     let mut builder = sqlx::QueryBuilder::new(
@@ -74,7 +74,7 @@ pub async fn create_authorization(
 }
 
 pub async fn find_authorization(
-    handle: &mut Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     query: &query::FindOAuth2AuthorizationQuery<'_>,
 ) -> stardust_common::Result<Option<entity::OAuth2AuthorizationEntity>> {
     let mut builder = sqlx::QueryBuilder::new(r#"SELECT * FROM oauth2_authorization WHERE 1=1 "#);
@@ -97,7 +97,7 @@ pub async fn find_authorization(
 }
 
 pub async fn save_authorization(
-    handle: &mut Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     entity: &entity::OAuth2AuthorizationEntity,
 ) -> stardust_common::Result<entity::OAuth2AuthorizationEntity> {
     let mut builder = sqlx::QueryBuilder::new("UPDATE oauth2_authorization SET ");
@@ -128,7 +128,7 @@ pub async fn save_authorization(
 }
 
 pub async fn find_user(
-    handle: &mut Handle<'_>,
+    handle: &mut postgres::Handle<'_>,
     query: &query::FindOAuth2UserQuery<'_>,
 ) -> stardust_common::Result<Option<entity::OAuthUserAggregate>> {
     let mut builder = sqlx::QueryBuilder::new(
@@ -158,4 +158,78 @@ pub async fn find_user(
         client: row.client.into(),
         user: row.user.into(),
     }))
+}
+
+pub struct PostgresAuthorizationRepository {}
+
+impl PostgresAuthorizationRepository {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+#[async_trait::async_trait]
+impl crate::repository::AuthorizationRepository for PostgresAuthorizationRepository {
+    type Handle<'h> = stardust_db::internal::postgres::Handle<'h>;
+
+    async fn create_table(&self, handle: &mut Self::Handle<'_>) -> stardust_common::Result<()> {
+        sqlx::query(
+            r#"
+                CREATE TABLE IF NOT EXISTS oauth2_authorization (
+                    id BIGSERIAL PRIMARY KEY,
+                    oauth2_client_id BIGSERIAL NOT NULL,
+                    principal_id BIGINT NOT NULL,
+                    grant_type VARCHAR(50) NOT NULL,
+                    scopes TEXT,
+                    state VARCHAR(255),
+                    auth_code_value VARCHAR(255),
+                    auth_code_issued_at TIMESTAMPTZ,
+                    auth_code_expires_at TIMESTAMPTZ,
+                    access_token_value VARCHAR(255),
+                    access_token_issued_at TIMESTAMPTZ,
+                    access_token_expires_at TIMESTAMPTZ,
+                    refresh_token_hash VARCHAR(255),
+                    refresh_token_issued_at TIMESTAMPTZ,
+                    refresh_token_expires_at TIMESTAMPTZ,
+                    CONSTRAINT fk_oauth2_client_id FOREIGN KEY (oauth2_client_id) REFERENCES oauth2_client(id)
+                );
+            "#,
+        )
+        .execute(handle.executor())
+        .await
+        .map_err(stardust_db::into_error)?;
+        Ok(())
+    }
+
+    async fn create_authorization(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        entity: &crate::entity::OAuth2AuthorizationEntity,
+    ) -> stardust_common::Result<crate::entity::OAuth2AuthorizationEntity> {
+        create_authorization(handle, entity).await
+    }
+
+    async fn find_authorization(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        query: &query::FindOAuth2AuthorizationQuery<'_>,
+    ) -> stardust_common::Result<Option<entity::OAuth2AuthorizationEntity>> {
+        find_authorization(handle, query).await
+    }
+
+    async fn save_authorization(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        entity: &entity::OAuth2AuthorizationEntity,
+    ) -> stardust_common::Result<entity::OAuth2AuthorizationEntity> {
+        save_authorization(handle, entity).await
+    }
+
+    async fn find_user(
+        &self,
+        handle: &mut Self::Handle<'_>,
+        query: &query::FindOAuth2UserQuery<'_>,
+    ) -> stardust_common::Result<Option<entity::OAuthUserAggregate>> {
+        find_user(handle, query).await
+    }
 }

@@ -1,25 +1,30 @@
 use std::sync::Arc;
 
-use crate::{command, entity, infra::client_repo, query, service::OAuth2ClientService};
+use crate::{command, entity, query, service::OAuth2ClientService};
 
-pub struct OAuth2ClientServiceImpl<H> {
-    database: stardust_db::Database,
+pub struct OAuth2ClientServiceImpl<DB, H, ClientRepo> {
+    database: DB,
     hasher: Arc<H>,
+    client_repo: Arc<ClientRepo>,
 }
 
-impl<H> OAuth2ClientServiceImpl<H>
-where
-    H: stardust_common::hash::Hasher,
+impl<DB, H, ClientRepo> OAuth2ClientServiceImpl<DB, H, ClientRepo>
 {
-    pub fn new(database: stardust_db::Database, hasher: Arc<H>) -> Self {
-        Self { database, hasher }
+    pub fn new(database: DB, hasher: Arc<H>, client_repo: Arc<ClientRepo>) -> Self {
+        Self {
+            database,
+            hasher,
+            client_repo,
+        }
     }
 }
 
 #[async_trait::async_trait]
-impl<H> OAuth2ClientService for OAuth2ClientServiceImpl<H>
+impl<DB, H, ClientRepo> OAuth2ClientService for OAuth2ClientServiceImpl<DB, H, ClientRepo>
 where
+    DB: stardust_db::database::Database + 'static,
     H: stardust_common::hash::Hasher,
+    ClientRepo: for<'h> crate::repository::ClientRepository<Handle<'h> = DB::Handle<'h>>,
 {
     async fn create_client(
         &self,
@@ -36,7 +41,7 @@ where
             auth_methods: command.auth_methods.clone(),
             scopes: command.scopes.clone(),
         };
-        let entity = client_repo::create_client(&mut self.database.pool(), &entity).await?;
+        let entity = self.client_repo.create_client(&mut self.database.handle(), &entity).await?;
         Ok(entity)
     }
 
@@ -44,14 +49,14 @@ where
         &self,
         query: &query::FindOAuth2ClientQuery<'_>,
     ) -> stardust_common::Result<Vec<entity::OAuth2ClientEntity>> {
-        client_repo::find_clients(&mut self.database.pool(), &query).await
+        self.client_repo.find_clients(&mut self.database.handle(), &query).await
     }
 
     async fn delete_client(
         &self,
         command: &command::DeleteOAuth2ClientCommand,
     ) -> stardust_common::Result<()> {
-        client_repo::delete_client(&mut self.database.pool(), &command).await
+        self.client_repo.delete_client(&mut self.database.handle(), &command).await
     }
 
     async fn verify(

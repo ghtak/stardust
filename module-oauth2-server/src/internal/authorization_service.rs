@@ -1,26 +1,32 @@
 use std::sync::Arc;
 
-use crate::{command, entity, infra::authorization_repo, query, service};
+use crate::{command, entity, query, service};
 
-pub struct OAuth2AuthorizationServiceImpl<H, CS> {
-    database: stardust_db::Database,
+pub struct OAuth2AuthorizationServiceImpl<DB, H, AuthorizationRepo, CS> {
+    database: DB,
     hasher: Arc<H>,
+    authorization_repo: Arc<AuthorizationRepo>,
     oauth2_client_service: Arc<CS>,
 }
 
-impl<H, CS> OAuth2AuthorizationServiceImpl<H, CS>
+impl<DB, H, AuthorizationRepo, CS> OAuth2AuthorizationServiceImpl<DB, H, AuthorizationRepo, CS>
 where
+    DB: stardust_db::database::Database + 'static,
     H: stardust_common::hash::Hasher,
     CS: service::OAuth2ClientService,
+    AuthorizationRepo:
+        for<'h> crate::repository::AuthorizationRepository<Handle<'h> = DB::Handle<'h>>,
 {
     pub fn new(
-        database: stardust_db::Database,
+        database: DB,
         hasher: Arc<H>,
+        authorization_repo: Arc<AuthorizationRepo>,
         oauth2_client_service: Arc<CS>,
     ) -> Self {
         Self {
             database,
             hasher,
+            authorization_repo,
             oauth2_client_service,
         }
     }
@@ -42,14 +48,16 @@ where
             })
             .await?;
 
-        let Some(mut auth) = authorization_repo::find_authorization(
-            &mut self.database.pool(),
-            &query::FindOAuth2AuthorizationQuery {
-                auth_code_value: Some(code),
-                refresh_token_hash: None,
-            },
-        )
-        .await?
+        let Some(mut auth) = self
+            .authorization_repo
+            .find_authorization(
+                &mut self.database.handle(),
+                &query::FindOAuth2AuthorizationQuery {
+                    auth_code_value: Some(code),
+                    refresh_token_hash: None,
+                },
+            )
+            .await?
         else {
             return Err(stardust_common::Error::NotFound);
         };
@@ -62,7 +70,7 @@ where
         let refresh_token = stardust_common::utils::generate_uid();
         let refresh_token_hash = self.hasher.hash(&refresh_token)?;
         auth.issue_token(access_token.clone(), refresh_token_hash);
-        authorization_repo::save_authorization(&mut self.database.pool(), &auth).await?;
+        self.authorization_repo.save_authorization(&mut self.database.handle(), &auth).await?;
         let token = entity::OAuth2Token {
             access_token,
             expires_in: 3600,
@@ -91,21 +99,23 @@ where
             .await?;
 
         let hash = self.hasher.hash(&refresh_token)?;
-        let Some(mut auth) = authorization_repo::find_authorization(
-            &mut self.database.pool(),
-            &query::FindOAuth2AuthorizationQuery {
-                auth_code_value: None,
-                refresh_token_hash: Some(&hash),
-            },
-        )
-        .await?
+        let Some(mut auth) = self
+            .authorization_repo
+            .find_authorization(
+                &mut self.database.handle(),
+                &query::FindOAuth2AuthorizationQuery {
+                    auth_code_value: None,
+                    refresh_token_hash: Some(&hash),
+                },
+            )
+            .await?
         else {
             return Err(stardust_common::Error::NotFound);
         };
 
         let access_token = stardust_common::utils::generate_uid();
         auth.refresh_token(access_token.clone());
-        authorization_repo::save_authorization(&mut self.database.pool(), &auth).await?;
+        self.authorization_repo.save_authorization(&mut self.database.handle(), &auth).await?;
         let token = entity::OAuth2Token {
             access_token,
             expires_in: 3600,
@@ -118,10 +128,14 @@ where
 }
 
 #[async_trait::async_trait]
-impl<H, CS> service::OAuth2AuthorizationService for OAuth2AuthorizationServiceImpl<H, CS>
+impl<DB, H, AuthorizationRepo, CS> service::OAuth2AuthorizationService
+    for OAuth2AuthorizationServiceImpl<DB, H, AuthorizationRepo, CS>
 where
+    DB: stardust_db::database::Database + 'static,
     H: stardust_common::hash::Hasher,
     CS: service::OAuth2ClientService,
+    AuthorizationRepo:
+        for<'h> crate::repository::AuthorizationRepository<Handle<'h> = DB::Handle<'h>>,
 {
     async fn verify(
         &self,
@@ -166,9 +180,10 @@ where
             command.verify_command.scope.to_owned(),
             command.verify_command.state.to_owned(),
         );
-        let auth =
-            authorization_repo::create_authorization(&mut self.database.pool(), &authorization)
-                .await?;
+        let auth = self
+            .authorization_repo
+            .create_authorization(&mut self.database.handle(), &authorization)
+            .await?;
         Ok(auth)
     }
 
@@ -189,6 +204,6 @@ where
         &self,
         query: &query::FindOAuth2UserQuery<'_>,
     ) -> stardust_common::Result<Option<entity::OAuthUserAggregate>> {
-        authorization_repo::find_user(&mut self.database.pool(), &query).await
+        self.authorization_repo.find_user(&mut self.database.handle(), &query).await
     }
 }
