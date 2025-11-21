@@ -7,7 +7,7 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-use module_user::{interface::ServiceProvider, service::MigrationService};
+use module_user::{interface::ServiceProvider};
 use stardust_core::repository::MigrationRepository;
 use stardust_db::database::Database;
 use stardust_interface::http::{
@@ -16,6 +16,7 @@ use stardust_interface::http::{
 };
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::info_span;
+use stardust_core::service::MigrationService;
 
 use crate::app::UserMigrationServiceImpl;
 
@@ -99,7 +100,13 @@ async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
         Err(e) => eprintln!("User module migration failed: {}", e),
     }
 
-    match module_oauth2_server::infra::migration::migrate(ct.database.clone()).await {
+    let oauth2_migration = app::OAuth2MigrationServiceImpl::new(
+        ct.database.clone(),
+        Arc::new(app::OAuth2MigrationRepositoryImpl::new()),
+        migration_repo.clone(),
+    );
+
+    match oauth2_migration.migrate().await {
         Ok(_) => println!("OAuth2 module migration successful"),
         Err(e) => eprintln!("OAuth2 module migration failed: {}", e),
     }

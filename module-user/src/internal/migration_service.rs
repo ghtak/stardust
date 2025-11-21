@@ -28,7 +28,7 @@ impl<DB, US, UMR, MR> MigrationServiceImpl<DB, US, UMR, MR> {
 }
 
 #[async_trait::async_trait]
-impl<DB, US, UMR, MR> crate::service::MigrationService for MigrationServiceImpl<DB, US, UMR, MR>
+impl<DB, US, UMR, MR> stardust_core::service::MigrationService for MigrationServiceImpl<DB, US, UMR, MR>
 where
     DB: stardust_db::database::Database + 'static,
     US: crate::service::UserService + 'static,

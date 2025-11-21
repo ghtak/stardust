@@ -58,6 +58,14 @@ pub mod dev_env {
         MigrationRepositoryImpl,
     >;
 
+    pub type OAuth2MigrationRepositoryImpl =
+        module_oauth2_server::infra::migration_repo::PostgresMigrationRepository;
+
+    pub type OAuth2MigrationServiceImpl = module_oauth2_server::internal::MigrationServiceImpl<
+        DatabaseImpl,
+        OAuth2MigrationRepositoryImpl,
+        MigrationRepositoryImpl,
+    >;
 
     pub type Container =
         crate::container::Container<DatabaseImpl, UserContaierImpl, OAuth2ServerContainerImpl>;

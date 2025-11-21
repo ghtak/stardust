@@ -51,3 +51,16 @@ pub trait AuthorizationRepository: Sync + Send {
         query: &query::FindOAuth2UserQuery<'_>,
     ) -> stardust_common::Result<Option<entity::OAuthUserAggregate>>;
 }
+
+#[async_trait::async_trait]
+pub trait MigrationRepository: Sync + Send {
+    type Handle<'h>;
+
+    async fn create_client_store(&self, handle: &mut Self::Handle<'_>)
+    -> stardust_common::Result<()>;
+
+    async fn create_authorization_store(
+        &self,
+        handle: &mut Self::Handle<'_>,
+    ) -> stardust_common::Result<()>;
+}
