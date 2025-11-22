@@ -6,7 +6,7 @@ use crate::{entity, query};
 
 pub struct MockUserRepository {
     pub user_store: Arc<Mutex<HashMap<i64, crate::entity::UserEntity>>>,
-    pub account_store: Arc<Mutex<HashMap<i64, crate::entity::UserAccountEntity>>>,
+    pub account_store: Arc<Mutex<HashMap<String, crate::entity::UserAccountEntity>>>,
 }
 
 impl MockUserRepository {
@@ -35,9 +35,11 @@ impl crate::repository::UserRepository for MockUserRepository {
     async fn create_user_account(
         &self,
         _handle: &mut Self::Handle<'_>,
-        _user_account_entity: &entity::UserAccountEntity,
+        user_account_entity: &entity::UserAccountEntity,
     ) -> stardust_common::Result<entity::UserAccountEntity> {
-        unimplemented!()
+        let mut account_store = self.account_store.lock().await;
+        account_store.insert(user_account_entity.uid.clone(), user_account_entity.clone());
+        Ok(user_account_entity.clone())
     }
 
     async fn find_user(
@@ -45,7 +47,7 @@ impl crate::repository::UserRepository for MockUserRepository {
         _handle: &mut Self::Handle<'_>,
         _query: &query::FindUserQuery<'_>,
     ) -> stardust_common::Result<Option<entity::UserEntity>> {
-        unimplemented!()
+        Ok(None)
     }
 
     async fn find_user_accounts(
