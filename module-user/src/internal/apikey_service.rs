@@ -4,42 +4,42 @@ use stardust_common::With;
 
 use crate::{command, entity, query, service::ApiKeyService};
 
-pub struct ApikeyServiceImpl<Database, Hasher, ApiKeyRepo, Tracker> {
+pub struct ApikeyServiceImpl<Database, ApiKeyRepo, Tracker, Hasher> {
     database: Database,
-    hasher: Arc<Hasher>,
     apikey_repo: Arc<ApiKeyRepo>,
     tracker: Arc<Tracker>,
+    hasher: Arc<Hasher>,
 }
 
-impl<Database, Hasher, ApiKeyRepo, Tracker> ApikeyServiceImpl<Database, Hasher, ApiKeyRepo, Tracker>
+impl<Database, ApiKeyRepo, Tracker, Hasher> ApikeyServiceImpl<Database, ApiKeyRepo, Tracker, Hasher>
 where
     Database: stardust_db::database::Database,
-    Hasher: stardust_common::hash::Hasher,
-    Tracker: crate::service::ApiKeyUsageTracker,
     ApiKeyRepo: for<'h> crate::repository::ApiKeyRepository<Handle<'h> = Database::Handle<'h>>,
+    Tracker: crate::service::ApiKeyUsageTracker,
+    Hasher: stardust_common::hash::Hasher,
 {
     pub fn new(
         database: Database,
-        hasher: Arc<Hasher>,
         apikey_repo: Arc<ApiKeyRepo>,
         tracker: Arc<Tracker>,
+        hasher: Arc<Hasher>,
     ) -> Self {
         Self {
             database,
-            hasher,
             apikey_repo,
             tracker,
+            hasher,
         }
     }
 }
 
-impl<Database, Hasher, ApiKeyRepo, Tracker> ApiKeyService
-    for ApikeyServiceImpl<Database, Hasher, ApiKeyRepo, Tracker>
+impl<Database, ApiKeyRepo, Tracker, Hasher> ApiKeyService
+    for ApikeyServiceImpl<Database, ApiKeyRepo, Tracker, Hasher>
 where
     Database: stardust_db::database::Database + 'static,
-    Hasher: stardust_common::hash::Hasher,
-    Tracker: crate::service::ApiKeyUsageTracker,
     ApiKeyRepo: for<'h> crate::repository::ApiKeyRepository<Handle<'h> = Database::Handle<'h>>,
+    Tracker: crate::service::ApiKeyUsageTracker,
+    Hasher: stardust_common::hash::Hasher,
 {
     async fn create_apikey(
         &self,
@@ -71,9 +71,7 @@ where
         &self,
         query: &query::FindApiKeyUserQuery<'_>,
     ) -> stardust_common::Result<Option<entity::ApiKeyUserAggregate>> {
-        tracing::info!("find_user {:?}", &query);
         let result = self.apikey_repo.find_user(&mut self.database.handle(), &query).await;
-        tracing::info!("result {:?}", &result);
         match result {
             Ok(Some(ref user)) => {
                 self.tracker.track_usage(user.apikey_id).await?;

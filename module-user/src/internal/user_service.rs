@@ -2,25 +2,24 @@ use std::sync::Arc;
 
 use crate::{
     command::{LoginCommand, SignupCommand},
-    entity,
-    query,
+    entity, query,
 };
 
 use stardust_db::database::Handle;
 
-pub struct UserServiceImpl<Database, Hasher, UserRepo> {
+pub struct UserServiceImpl<Database, UserRepo, Hasher> {
     database: Database,
-    hasher: Arc<Hasher>,
     user_repo: Arc<UserRepo>,
+    hasher: Arc<Hasher>,
 }
 
-impl<Database, Hasher, UserRepo> UserServiceImpl<Database, Hasher, UserRepo>
+impl<Database, UserRepo, Hasher> UserServiceImpl<Database, UserRepo, Hasher>
 where
     Database: stardust_db::database::Database,
-    Hasher: stardust_common::hash::Hasher,
     UserRepo: for<'h> crate::repository::UserRepository<Handle<'h> = Database::Handle<'h>>,
+    Hasher: stardust_common::hash::Hasher,
 {
-    pub fn new(database: Database, hasher: Arc<Hasher>, user_repo: Arc<UserRepo>) -> Self {
+    pub fn new(database: Database, user_repo: Arc<UserRepo>, hasher: Arc<Hasher>) -> Self {
         Self {
             database,
             hasher,
@@ -49,11 +48,12 @@ where
 }
 
 #[async_trait::async_trait]
-impl<Database, Hasher, UserRepo> crate::service::UserService for UserServiceImpl<Database, Hasher, UserRepo>
+impl<Database, UserRepo, Hasher> crate::service::UserService
+    for UserServiceImpl<Database, UserRepo, Hasher>
 where
     Database: stardust_db::database::Database + 'static,
-    Hasher: stardust_common::hash::Hasher,
     UserRepo: for<'h> crate::repository::UserRepository<Handle<'h> = Database::Handle<'h>>,
+    Hasher: stardust_common::hash::Hasher,
 {
     async fn hello(&self) -> String {
         "hello".into()
@@ -63,11 +63,13 @@ where
         &self,
         command: &SignupCommand,
     ) -> stardust_common::Result<entity::UserAggregate> {
-        if let Some(user) = self.user_repo.find_user(
-            &mut self.database.handle(),
-            &crate::query::FindUserQuery::by_email(command.email()),
-        )
-        .await?
+        if let Some(user) = self
+            .user_repo
+            .find_user(
+                &mut self.database.handle(),
+                &crate::query::FindUserQuery::by_email(command.email()),
+            )
+            .await?
         {
             return Err(stardust_common::Error::Duplicate(Some(user.email)));
         }

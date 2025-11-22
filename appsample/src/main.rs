@@ -29,24 +29,24 @@ async fn build_container() -> Arc<app::Container> {
     stardust_common::logging::init(&config.logging);
     tracing::info!("config: {:?}", config);
     stardust_core::audit(0, "sys.init", serde_json::Value::Null);
+
     let database = app::DatabaseImpl::new(&config.database).await.unwrap();
     let hasher = Arc::new(app::HasherImpl::default());
-    let user_repo = Arc::new(app::UserRepositoryImpl::new());
 
+    let user_repo = Arc::new(app::UserRepositoryImpl::new());
     let user_service = Arc::new(app::UserServiceImpl::new(
         database.clone(),
+        user_repo.clone(),
         hasher.clone(),
-        user_repo,
     ));
 
-    let apikey_usage_tracker = app::ApiKeyUsageTrackerImpl::new(database.clone());
     let apikey_repo = Arc::new(app::ApiKeyRepositoryImpl::new());
-
+    let apikey_usage_tracker = app::ApiKeyUsageTrackerImpl::new(database.clone());
     let apikey_service = Arc::new(app::ApikeyServiceImpl::new(
         database.clone(),
-        hasher.clone(),
         apikey_repo.clone(),
         apikey_usage_tracker.clone(),
+        hasher.clone(),
     ));
 
     let user_container = Arc::new(app::UserContaierImpl::new(
@@ -55,20 +55,18 @@ async fn build_container() -> Arc<app::Container> {
     ));
 
     let oauth2_client_repo = Arc::new(app::OAuth2ClientRepositoryImpl::new());
-
     let oauth2_client_service = Arc::new(app::OAuth2ClientServiceImpl::new(
         database.clone(),
-        hasher.clone(),
         oauth2_client_repo.clone(),
+        hasher.clone(),
     ));
 
     let oauth2_authorization_repo = Arc::new(app::OAuth2AuthorizationRepositoryImpl::new());
-
     let oauth2_authorization_service = Arc::new(app::OAuth2AuthorizationServiceImpl::new(
         database.clone(),
-        hasher.clone(),
         oauth2_authorization_repo.clone(),
         oauth2_client_service.clone(),
+        hasher.clone(),
     ));
 
     let oauth2_server_container = Arc::new(app::OAuth2ServerContainerImpl::new(
@@ -90,11 +88,10 @@ async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
 
     let user_migration = UserMigrationServiceImpl::new(
         ct.database.clone(),
-        ct.user_container.user_service(),
         Arc::new(app::UserMigrationRepositoryImpl::new()),
+        ct.user_container.user_service(),
         migration_repo.clone(),
     );
-
     match user_migration.migrate().await {
         Ok(_) => println!("User module migration successful"),
         Err(e) => eprintln!("User module migration failed: {}", e),
@@ -105,7 +102,6 @@ async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
         Arc::new(app::OAuth2MigrationRepositoryImpl::new()),
         migration_repo.clone(),
     );
-
     match oauth2_migration.migrate().await {
         Ok(_) => println!("OAuth2 module migration successful"),
         Err(e) => eprintln!("OAuth2 module migration failed: {}", e),

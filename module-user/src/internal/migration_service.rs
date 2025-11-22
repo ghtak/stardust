@@ -4,36 +4,42 @@ use stardust_db::database::Handle;
 
 use crate::entity;
 
-pub struct MigrationServiceImpl<DB, US, UMR, MR> {
-    database: DB,
-    user_service: Arc<US>,
-    user_migration_repo: Arc<UMR>,
-    migration_repo: Arc<MR>,
+pub struct MigrationServiceImpl<Database, UserMigrationRepo, UserService, MigrationRepo> {
+    database: Database,
+    user_migration_repo: Arc<UserMigrationRepo>,
+    user_service: Arc<UserService>,
+    migration_repo: Arc<MigrationRepo>,
 }
 
-impl<DB, US, UMR, MR> MigrationServiceImpl<DB, US, UMR, MR> {
+impl<Database, UserMigrationRepo, UserService, MigrationRepo>
+    MigrationServiceImpl<Database, UserMigrationRepo, UserService, MigrationRepo>
+{
     pub fn new(
-        database: DB,
-        user_service: Arc<US>,
-        user_migration_repo: Arc<UMR>,
-        migration_repo: Arc<MR>,
+        database: Database,
+        user_migration_repo: Arc<UserMigrationRepo>,
+        user_service: Arc<UserService>,
+        migration_repo: Arc<MigrationRepo>,
     ) -> Self {
         Self {
             database,
-            user_service,
             user_migration_repo,
+            user_service,
             migration_repo,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<DB, US, UMR, MR> stardust_core::service::MigrationService for MigrationServiceImpl<DB, US, UMR, MR>
+impl<Database, UserMigrationRepo, UserService, MigrationRepo>
+    stardust_core::service::MigrationService
+    for MigrationServiceImpl<Database, UserMigrationRepo, UserService, MigrationRepo>
 where
-    DB: stardust_db::database::Database + 'static,
-    US: crate::service::UserService + 'static,
-    UMR: for<'h> crate::repository::MigrationRepository<Handle<'h> = DB::Handle<'h>>,
-    MR: for<'h> stardust_core::repository::MigrationRepository<Handle<'h> = DB::Handle<'h>>,
+    Database: stardust_db::database::Database + 'static,
+    UserMigrationRepo:
+        for<'h> crate::repository::MigrationRepository<Handle<'h> = Database::Handle<'h>>,
+    UserService: crate::service::UserService + 'static,
+    MigrationRepo:
+        for<'h> stardust_core::repository::MigrationRepository<Handle<'h> = Database::Handle<'h>>,
 {
     async fn migrate(&self) -> stardust_common::Result<()> {
         const NAME: &str = "user_migration";

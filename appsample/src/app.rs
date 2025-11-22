@@ -6,16 +6,16 @@ pub mod dev_env {
     pub type UserRepositoryImpl = module_user::infra::user_repo::PostgresUserRepository;
 
     pub type UserServiceImpl =
-        module_user::internal::UserServiceImpl<DatabaseImpl, HasherImpl, UserRepositoryImpl>;
+        module_user::internal::UserServiceImpl<DatabaseImpl, UserRepositoryImpl, HasherImpl>;
 
     pub type ApiKeyUsageTrackerImpl = module_user::internal::ImmediateUsageTracker;
 
     pub type ApiKeyRepositoryImpl = module_user::infra::apikey_repo::PostgresApiKeyRepository;
     pub type ApikeyServiceImpl = module_user::internal::ApikeyServiceImpl<
         DatabaseImpl,
-        HasherImpl,
         ApiKeyRepositoryImpl,
         ApiKeyUsageTrackerImpl,
+        HasherImpl,
     >;
 
     pub type UserContaierImpl =
@@ -26,8 +26,8 @@ pub mod dev_env {
 
     pub type OAuth2ClientServiceImpl = module_oauth2_server::internal::OAuth2ClientServiceImpl<
         DatabaseImpl,
-        HasherImpl,
         OAuth2ClientRepositoryImpl,
+        HasherImpl,
     >;
 
     pub type OAuth2AuthorizationRepositoryImpl =
@@ -36,9 +36,9 @@ pub mod dev_env {
     pub type OAuth2AuthorizationServiceImpl =
         module_oauth2_server::internal::OAuth2AuthorizationServiceImpl<
             DatabaseImpl,
-            HasherImpl,
             OAuth2AuthorizationRepositoryImpl,
             OAuth2ClientServiceImpl,
+            HasherImpl,
         >;
 
     pub type OAuth2ServerContainerImpl = module_oauth2_server::interface::container::Container<
@@ -47,20 +47,20 @@ pub mod dev_env {
         OAuth2AuthorizationServiceImpl,
     >;
 
-    pub type MigrationRepositoryImpl = stardust_core::infra::migration_repo::PostgresMigrationRepository;
+    pub type MigrationRepositoryImpl =
+        stardust_core::infra::migration_repo::PostgresMigrationRepository;
+
     pub type UserMigrationRepositoryImpl =
         module_user::infra::migration_repo::PostgresMigrationRepository;
-
     pub type UserMigrationServiceImpl = module_user::internal::MigrationServiceImpl<
         DatabaseImpl,
-        UserServiceImpl,
         UserMigrationRepositoryImpl,
+        UserServiceImpl,
         MigrationRepositoryImpl,
     >;
 
     pub type OAuth2MigrationRepositoryImpl =
         module_oauth2_server::infra::migration_repo::PostgresMigrationRepository;
-
     pub type OAuth2MigrationServiceImpl = module_oauth2_server::internal::MigrationServiceImpl<
         DatabaseImpl,
         OAuth2MigrationRepositoryImpl,

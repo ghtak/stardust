@@ -2,29 +2,29 @@ use std::sync::Arc;
 
 use crate::{command, entity, query, service::OAuth2ClientService};
 
-pub struct OAuth2ClientServiceImpl<DB, H, ClientRepo> {
-    database: DB,
-    hasher: Arc<H>,
+pub struct OAuth2ClientServiceImpl<Database, ClientRepo, Hasher> {
+    database: Database,
     client_repo: Arc<ClientRepo>,
+    hasher: Arc<Hasher>,
 }
 
-impl<DB, H, ClientRepo> OAuth2ClientServiceImpl<DB, H, ClientRepo>
-{
-    pub fn new(database: DB, hasher: Arc<H>, client_repo: Arc<ClientRepo>) -> Self {
+impl<Database, ClientRepo, Hasher> OAuth2ClientServiceImpl<Database, ClientRepo, Hasher> {
+    pub fn new(database: Database, client_repo: Arc<ClientRepo>, hasher: Arc<Hasher>) -> Self {
         Self {
             database,
-            hasher,
             client_repo,
+            hasher,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<DB, H, ClientRepo> OAuth2ClientService for OAuth2ClientServiceImpl<DB, H, ClientRepo>
+impl<Database, ClientRepo, Hasher> OAuth2ClientService
+    for OAuth2ClientServiceImpl<Database, ClientRepo, Hasher>
 where
-    DB: stardust_db::database::Database + 'static,
-    H: stardust_common::hash::Hasher,
-    ClientRepo: for<'h> crate::repository::ClientRepository<Handle<'h> = DB::Handle<'h>>,
+    Database: stardust_db::database::Database + 'static,
+    ClientRepo: for<'h> crate::repository::ClientRepository<Handle<'h> = Database::Handle<'h>>,
+    Hasher: stardust_common::hash::Hasher,
 {
     async fn create_client(
         &self,

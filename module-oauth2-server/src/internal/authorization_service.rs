@@ -2,32 +2,33 @@ use std::sync::Arc;
 
 use crate::{command, entity, query, service};
 
-pub struct OAuth2AuthorizationServiceImpl<DB, H, AuthorizationRepo, CS> {
-    database: DB,
-    hasher: Arc<H>,
+pub struct OAuth2AuthorizationServiceImpl<Database, AuthorizationRepo, ClientService, Hasher> {
+    database: Database,
     authorization_repo: Arc<AuthorizationRepo>,
-    oauth2_client_service: Arc<CS>,
+    oauth2_client_service: Arc<ClientService>,
+    hasher: Arc<Hasher>,
 }
 
-impl<DB, H, AuthorizationRepo, CS> OAuth2AuthorizationServiceImpl<DB, H, AuthorizationRepo, CS>
+impl<Database, AuthorizationRepo, ClientService, Hasher>
+    OAuth2AuthorizationServiceImpl<Database, AuthorizationRepo, ClientService, Hasher>
 where
-    DB: stardust_db::database::Database + 'static,
-    H: stardust_common::hash::Hasher,
-    CS: service::OAuth2ClientService,
+    Database: stardust_db::database::Database + 'static,
     AuthorizationRepo:
-        for<'h> crate::repository::AuthorizationRepository<Handle<'h> = DB::Handle<'h>>,
+        for<'h> crate::repository::AuthorizationRepository<Handle<'h> = Database::Handle<'h>>,
+    ClientService: service::OAuth2ClientService,
+    Hasher: stardust_common::hash::Hasher,
 {
     pub fn new(
-        database: DB,
-        hasher: Arc<H>,
+        database: Database,
         authorization_repo: Arc<AuthorizationRepo>,
-        oauth2_client_service: Arc<CS>,
+        oauth2_client_service: Arc<ClientService>,
+        hasher: Arc<Hasher>,
     ) -> Self {
         Self {
             database,
-            hasher,
             authorization_repo,
             oauth2_client_service,
+            hasher,
         }
     }
 
@@ -128,14 +129,14 @@ where
 }
 
 #[async_trait::async_trait]
-impl<DB, H, AuthorizationRepo, CS> service::OAuth2AuthorizationService
-    for OAuth2AuthorizationServiceImpl<DB, H, AuthorizationRepo, CS>
+impl<Database, AuthorizationRepo, ClientService, Hasher> service::OAuth2AuthorizationService
+    for OAuth2AuthorizationServiceImpl<Database, AuthorizationRepo, ClientService, Hasher>
 where
-    DB: stardust_db::database::Database + 'static,
-    H: stardust_common::hash::Hasher,
-    CS: service::OAuth2ClientService,
+    Database: stardust_db::database::Database + 'static,
     AuthorizationRepo:
-        for<'h> crate::repository::AuthorizationRepository<Handle<'h> = DB::Handle<'h>>,
+        for<'h> crate::repository::AuthorizationRepository<Handle<'h> = Database::Handle<'h>>,
+    ClientService: service::OAuth2ClientService,
+    Hasher: stardust_common::hash::Hasher,
 {
     async fn verify(
         &self,
