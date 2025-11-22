@@ -43,6 +43,9 @@ pub enum Error {
 
     #[error("Expired: {0}")]
     Expired(Cow<'static, str>),
+
+    #[error("Hash Error: {0}")]
+    HashError(Cow<'static, str>),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

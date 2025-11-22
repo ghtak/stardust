@@ -7,8 +7,9 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-use module_user::{interface::ServiceProvider};
+use module_user::interface::ServiceProvider;
 use stardust_core::repository::MigrationRepository;
+use stardust_core::service::MigrationService;
 use stardust_db::database::Database;
 use stardust_interface::http::{
     ApiResponse,
@@ -16,7 +17,6 @@ use stardust_interface::http::{
 };
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::info_span;
-use stardust_core::service::MigrationService;
 
 use crate::app::UserMigrationServiceImpl;
 
@@ -33,11 +33,12 @@ async fn build_container() -> Arc<app::Container> {
     let database = app::DatabaseImpl::new(&config.database).await.unwrap();
     let hasher = Arc::new(app::HasherImpl::default());
 
+    let password_hasher = Arc::new(app::PasswordHasherImpl::default());
     let user_repo = Arc::new(app::UserRepositoryImpl::new());
     let user_service = Arc::new(app::UserServiceImpl::new(
         database.clone(),
         user_repo.clone(),
-        hasher.clone(),
+        password_hasher.clone(),
     ));
 
     let apikey_repo = Arc::new(app::ApiKeyRepositoryImpl::new());

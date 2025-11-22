@@ -1,12 +1,13 @@
 pub mod dev_env {
 
     pub type HasherImpl = stardust_common::hash::DummyHasher;
+    pub type PasswordHasherImpl = stardust_common::hash::DummyHasher;
 
     pub type DatabaseImpl = stardust_db::internal::postgres::Database;
     pub type UserRepositoryImpl = module_user::infra::user_repo::PostgresUserRepository;
 
     pub type UserServiceImpl =
-        module_user::internal::UserServiceImpl<DatabaseImpl, UserRepositoryImpl, HasherImpl>;
+        module_user::internal::UserServiceImpl<DatabaseImpl, UserRepositoryImpl, PasswordHasherImpl>;
 
     pub type ApiKeyUsageTrackerImpl = module_user::internal::ImmediateUsageTracker;
 

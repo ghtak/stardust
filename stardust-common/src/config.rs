@@ -42,6 +42,16 @@ pub struct DatabaseConfig {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Argon2Config {
+    pub memory_kib: u32,
+    pub iterations: u32,
+    pub parallelism: u32,
+    pub algorithm: String, // argon2id | argon2i | argon2d
+    pub version: u32,
+    pub output_len: Option<u32>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Config {
     pub server: ServerConfig,
     pub logging: LoggingConfig,
