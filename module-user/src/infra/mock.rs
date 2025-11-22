@@ -45,17 +45,52 @@ impl crate::repository::UserRepository for MockUserRepository {
     async fn find_user(
         &self,
         _handle: &mut Self::Handle<'_>,
-        _query: &query::FindUserQuery<'_>,
+        q: &query::FindUserQuery<'_>,
     ) -> stardust_common::Result<Option<entity::UserEntity>> {
+        let user_store = self.user_store.lock().await;
+        for (k, v) in &*user_store {
+            if let Some(id) = q.id {
+                if id != *k {
+                    continue;
+                }
+            }
+            if let Some(username) = q.username {
+                if username != v.username {
+                    continue;
+                }
+            }
+            if let Some(email) = q.email {
+                if email != v.email {
+                    continue;
+                }
+            }
+            return Ok(Some(v.clone()));
+        }
+
+        if let Some(uid) = q.uid {
+            let account_store = self.account_store.lock().await;
+            if let Some(v) = account_store.get(uid) {
+                if let Some(user) = user_store.get(&v.user_id) {
+                    return Ok(Some(user.clone()));
+                }
+            }
+        }
         Ok(None)
     }
 
     async fn find_user_accounts(
         &self,
         _handle: &mut Self::Handle<'_>,
-        _user_id: i64,
+        user_id: i64,
     ) -> stardust_common::Result<Vec<crate::entity::UserAccountEntity>> {
-        unimplemented!()
+        let mut results = Vec::new();
+        let account_store = self.account_store.lock().await;
+        for (_,v) in &*account_store {
+            if v.user_id == user_id {
+                results.push(v.clone());
+            }
+        }
+        Ok(results)
     }
 
     async fn find_user_aggregate(
@@ -63,14 +98,24 @@ impl crate::repository::UserRepository for MockUserRepository {
         _handle: &mut Self::Handle<'_>,
         _query: &crate::query::FindUserQuery<'_>,
     ) -> stardust_common::Result<Option<entity::UserAggregate>> {
-        unimplemented!()
+        if let Some(user) = self.find_user(_handle, _query).await? {
+            let accounts = self.find_user_accounts(_handle, user.id).await?;
+            return Ok(Some(entity::UserAggregate {
+                user,
+                accounts,
+            }));
+        }
+        Ok(None)
     }
 
     async fn save_user_account(
         &self,
         _handle: &mut Self::Handle<'_>,
-        _user_account_entity: &entity::UserAccountEntity,
+        user_account_entity: &entity::UserAccountEntity,
     ) -> stardust_common::Result<entity::UserAccountEntity> {
-        unimplemented!()
+        let mut account_store = self.account_store.lock().await;
+        let account = account_store.get_mut(&user_account_entity.uid).unwrap();
+        *account = user_account_entity.clone();
+        Ok(user_account_entity.clone())
     }
 }

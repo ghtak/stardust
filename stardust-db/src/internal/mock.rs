@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Database {}
 
 impl Database {
@@ -6,6 +6,7 @@ impl Database {
         Ok(Self {})
     }
 }
+
 
 pub struct Handle<'a> {
     pub db: &'a Database,

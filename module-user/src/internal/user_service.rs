@@ -139,32 +139,29 @@ where
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
 
-    use stardust_common::config::DatabaseConfig;
-
     use crate::{command, service::UserService};
 
     #[tokio::test]
-    async fn test_service(){
+    async fn test_service() {
         let hasher = Arc::new(stardust_common::hash::DummyHasher::default());
-        let database = stardust_db::internal::mock::Database::new(&DatabaseConfig{
-            url : "".into(),
-            pool_size : 1
-        }).await.unwrap();
+        let database = stardust_db::internal::mock::Database::default();
         let repo = Arc::new(crate::infra::mock::MockUserRepository::new());
         let service = crate::internal::UserServiceImpl::new(database, repo.clone(), hasher);
         let result = service.hello().await;
         assert_eq!(result, "hello");
-        service.signup(&command::SignupCommand::Local {
-            username: "test".into(),
-            email: "test@example.com".into(),
-            password: "test".into(),
-        }).await.unwrap();
+
+        service
+            .signup(&command::SignupCommand::Local {
+                username: "test".into(),
+                email: "test@example.com".into(),
+                password: "test".into(),
+            })
+            .await
+            .unwrap();
         let store = repo.user_store.lock().await;
         assert_eq!(store.len(), 1);
         let user = store.values().next().unwrap();
