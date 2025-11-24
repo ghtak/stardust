@@ -1,20 +1,10 @@
 use std::sync::Arc;
 
-use axum::{
-    body::Body,
-    handler::HandlerWithoutStateExt,
-    http::{HeaderValue, Request, Response, StatusCode, header},
-    middleware::Next,
-    response::IntoResponse,
-};
+use axum::{handler::HandlerWithoutStateExt, http::StatusCode};
 use module_user::interface::ServiceProvider;
 use stardust_core::repository::MigrationRepository;
 use stardust_core::service::MigrationService;
 use stardust_db::database::Database;
-use stardust_interface::http::{
-    ApiResponse,
-    utils::{into_string, is_json_content},
-};
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::info_span;
 
@@ -24,60 +14,13 @@ mod app;
 mod container;
 mod error;
 
-async fn build_container() -> Arc<app::Container> {
-    let config = stardust_common::config::Config::test_config();
-    stardust_common::logging::init(&config.logging);
-    tracing::info!("config: {:?}", config);
-    stardust_core::audit(0, "sys.init", serde_json::Value::Null);
-
-    let database = app::DatabaseImpl::new(&config.database).await.unwrap();
-    let hasher = Arc::new(app::HasherImpl::default());
-
-    let password_hasher = Arc::new(app::PasswordHasherImpl::default());
-    let user_repo = Arc::new(app::UserRepositoryImpl::new());
-    let user_service = Arc::new(app::UserServiceImpl::new(
-        database.clone(),
-        user_repo.clone(),
-        password_hasher.clone(),
-    ));
-
-    let apikey_repo = Arc::new(app::ApiKeyRepositoryImpl::new());
-    let apikey_usage_tracker = app::ApiKeyUsageTrackerImpl::new(database.clone());
-    let apikey_service = Arc::new(app::ApikeyServiceImpl::new(
-        database.clone(),
-        apikey_repo.clone(),
-        apikey_usage_tracker.clone(),
-        hasher.clone(),
-    ));
-
-    let user_container = Arc::new(app::UserContaierImpl::new(
-        user_service.clone(),
-        apikey_service.clone(),
-    ));
-
-    let oauth2_client_repo = Arc::new(app::OAuth2ClientRepositoryImpl::new());
-    let oauth2_client_service = Arc::new(app::OAuth2ClientServiceImpl::new(
-        database.clone(),
-        oauth2_client_repo.clone(),
-        hasher.clone(),
-    ));
-
-    let oauth2_authorization_repo = Arc::new(app::OAuth2AuthorizationRepositoryImpl::new());
-    let oauth2_authorization_service = Arc::new(app::OAuth2AuthorizationServiceImpl::new(
-        database.clone(),
-        oauth2_authorization_repo.clone(),
-        oauth2_client_service.clone(),
-        hasher.clone(),
-    ));
-
-    let oauth2_server_container = Arc::new(app::OAuth2ServerContainerImpl::new(
-        user_container.clone(),
-        oauth2_client_service.clone(),
-        oauth2_authorization_service.clone(),
-    ));
-
-    let container = app::Container::new(config, database, user_container, oauth2_server_container);
-    Arc::new(container)
+fn need_migration() -> bool {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 && args[1] == "migrate" {
+        true
+    } else {
+        false
+    }
 }
 
 async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
@@ -111,47 +54,37 @@ async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
     Ok(())
 }
 
-pub async fn map_response(request: Request<Body>, next: Next) -> impl IntoResponse {
-    let response = next.run(request).await;
-    match response.status() {
-        s if s == StatusCode::UNPROCESSABLE_ENTITY || s == StatusCode::UNSUPPORTED_MEDIA_TYPE => {
-            if !is_json_content(response.headers()) {
-                let (mut parts, body) = response.into_parts();
-                let bodystr = into_string(body).await.unwrap_or_else(|e| {
-                    tracing::warn!("Failed to read response body: {}", e);
-                    String::new()
-                });
-                let content =
-                    ApiResponse::error(s, bodystr).into_json_string().unwrap_or_else(|e| {
-                        tracing::warn!("Failed to serialize error response: {}", e);
-                        String::from(r#"{"code":500,"message":"into_json_string failed"}"#)
-                    });
-                parts.headers.extend([
-                    (
-                        header::CONTENT_TYPE,
-                        HeaderValue::from_static("application/json"),
-                    ),
-                    (
-                        header::CONTENT_LENGTH,
-                        HeaderValue::from(content.len() as u64),
-                    ),
-                ]);
-                return Response::from_parts(parts, Body::from(content));
-            }
-        }
-        _ => {}
+pub fn with_fallback_service(
+    router: axum::Router,
+    httpcfg: &Option<stardust_common::config::HttpConfig>,
+) -> axum::Router {
+    let notfound = || async {
+        (
+            StatusCode::NOT_FOUND,
+            axum::Json(serde_json::json!({
+                        "error" : {
+                            "code": StatusCode::NOT_FOUND.as_u16(),
+                            "message": "Not Found"
+                        }
+            })),
+        )
+    };
+
+    if let Some(httpcfg) = httpcfg {
+        router.fallback_service(
+            ServeDir::new(httpcfg.static_dir.as_str()).not_found_service(notfound.into_service()),
+        )
+    } else {
+        router.fallback_service(notfound.into_service())
     }
-    response
 }
 
-pub async fn new_router(ct: Arc<app::Container>) -> axum::Router {
-    let router = axum::Router::new()
-        .merge(module_user::interface::http::routes(
-            ct.user_container.clone(),
-        ))
-        .merge(module_oauth2_server::interface::http::routes(
-            ct.oauth2_server_container.clone(),
-        ))
+pub async fn new_router(routers: Vec<axum::Router>) -> axum::Router {
+    let mut router = axum::Router::new();
+    for r in routers {
+        router = router.merge(r);
+    }
+    router
         .layer(stardust_interface::http::session_layer(
             tower_sessions::MemoryStore::default(),
         ))
@@ -165,39 +98,31 @@ pub async fn new_router(ct: Arc<app::Container>) -> axum::Router {
             }),
         )
         .layer(stardust_interface::http::TraceIdLayer::default())
-        .layer(axum::middleware::from_fn(map_response));
-
-    let notfound = || async {
-        (
-            StatusCode::NOT_FOUND,
-            axum::Json(serde_json::json!({
-                        "error" : {
-                            "code": StatusCode::NOT_FOUND.as_u16(),
-                            "message": "Not Found"
-                        }
-            })),
-        )
-    };
-
-    if let Some(httpcfg) = &ct.config.server.http {
-        router.fallback_service(
-            ServeDir::new(httpcfg.static_dir.as_str()).not_found_service(notfound.into_service()),
-        )
-    } else {
-        router.fallback_service(notfound.into_service())
-    }
-}
-
-pub async fn run_server(ct: Arc<app::Container>) {
-    stardust_interface::http::run(&ct.config.server, new_router(ct.clone()).await).await.unwrap();
+        .layer(axum::middleware::from_fn(
+            stardust_interface::http::map_response,
+        ))
 }
 
 #[tokio::main]
 async fn main() {
-    let ct = build_container().await;
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() > 1 && args[1] == "migrate" {
-        migration(ct.clone()).await.unwrap();
+    let config = stardust_common::config::Config::test_config();
+    stardust_common::logging::init(&config.logging);
+    tracing::info!("config: {:?}", config);
+    stardust_core::audit(0, "sys.init", serde_json::Value::Null);
+
+    let app_container = app::Container::build(config).await.unwrap();
+
+    if need_migration() {
+        migration(app_container.clone()).await.unwrap();
     }
-    run_server(ct).await;
+
+    let app_router = new_router(vec![
+        module_user::interface::http::routes(app_container.user_container.clone()),
+        module_oauth2_server::interface::http::routes(
+            app_container.oauth2_server_container.clone(),
+        ),
+    ])
+    .await;
+    let app_router = with_fallback_service(app_router, &app_container.config.server.http);
+    stardust_interface::http::run(&app_container.config.server, app_router).await.unwrap();
 }

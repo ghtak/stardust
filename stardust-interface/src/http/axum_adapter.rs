@@ -1,11 +1,14 @@
 use axum::{
     body::Body,
     http::{
-        StatusCode,
-        header::{CONTENT_LENGTH, CONTENT_TYPE},
+        HeaderValue, Request, Response, StatusCode,
+        header::{self, CONTENT_LENGTH, CONTENT_TYPE},
     },
+    middleware::Next,
     response::IntoResponse,
 };
+
+use crate::http::utils::{into_string, is_json_content};
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct ApiResponse<T: serde::Serialize> {
@@ -94,6 +97,39 @@ pub async fn run(
         tokio::net::TcpListener::bind(format!("{}:{}", config.host.as_str(), config.port)).await?;
     axum::serve(listener, router).await?;
     Ok(())
+}
+
+pub async fn map_response(request: Request<Body>, next: Next) -> impl IntoResponse {
+    let response = next.run(request).await;
+    match response.status() {
+        s if s == StatusCode::UNPROCESSABLE_ENTITY || s == StatusCode::UNSUPPORTED_MEDIA_TYPE => {
+            if !is_json_content(response.headers()) {
+                let (mut parts, body) = response.into_parts();
+                let bodystr = into_string(body).await.unwrap_or_else(|e| {
+                    tracing::warn!("Failed to read response body: {}", e);
+                    String::new()
+                });
+                let content =
+                    ApiResponse::error(s, bodystr).into_json_string().unwrap_or_else(|e| {
+                        tracing::warn!("Failed to serialize error response: {}", e);
+                        String::from(r#"{"code":500,"message":"into_json_string failed"}"#)
+                    });
+                parts.headers.extend([
+                    (
+                        header::CONTENT_TYPE,
+                        HeaderValue::from_static("application/json"),
+                    ),
+                    (
+                        header::CONTENT_LENGTH,
+                        HeaderValue::from(content.len() as u64),
+                    ),
+                ]);
+                return Response::from_parts(parts, Body::from(content));
+            }
+        }
+        _ => {}
+    }
+    response
 }
 
 #[cfg(test)]
