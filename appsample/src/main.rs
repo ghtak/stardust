@@ -12,7 +12,6 @@ use crate::app::UserMigrationServiceImpl;
 
 mod app;
 mod container;
-mod error;
 
 fn need_migration() -> bool {
     let args: Vec<String> = std::env::args().collect();
