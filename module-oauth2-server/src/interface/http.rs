@@ -11,7 +11,7 @@ use stardust_interface::http::ApiResponse;
 
 use crate::{
     command, entity,
-    interface::{ServiceProvider, dto, extract},
+    interface::{container::ServiceContainer, dto, extract},
     query,
     service::{OAuth2AuthorizationService, OAuth2ClientService},
 };
@@ -22,7 +22,7 @@ async fn create_client<T>(
     axum::Json(req): axum::Json<dto::CreateOAuth2ClientRequest>,
 ) -> Result<ApiResponse<dto::OAuth2ClientDto>, ApiResponse<()>>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     let entity = container.oauth2_client_service().create_client(&req.into()).await?;
     Ok(ApiResponse::with(entity.into()))
@@ -33,7 +33,7 @@ async fn get_clients<T>(
     AdminUser(_): AdminUser,
 ) -> Result<ApiResponse<Vec<dto::OAuth2ClientDto>>, ApiResponse<()>>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     let clients = ct
         .oauth2_client_service()
@@ -50,7 +50,7 @@ async fn delete_client<T>(
     axum::extract::Path(id): axum::extract::Path<i64>,
 ) -> ApiResponse<()>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     let result =
         ct.oauth2_client_service().delete_client(&command::DeleteOAuth2ClientCommand { id }).await;
@@ -66,7 +66,7 @@ async fn oauth2_authorize<T>(
     user: Option<AuthUser>,
 ) -> Result<impl IntoResponse, ApiResponse<()>>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     let Some(user) = user else {
         let _ = ct.oauth2_authorization_service().verify(&req.as_verify_command()).await?;
@@ -97,7 +97,7 @@ async fn oauth2_token<T>(
     Form(req): Form<dto::OAuth2TokenRequest>,
 ) -> Result<ApiResponse<dto::OAuth2TokenResponse>, ApiResponse<()>>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     let token = ct.oauth2_authorization_service().token(&req.as_command()).await?;
     Ok(ApiResponse::with(token.into()))
@@ -108,7 +108,7 @@ async fn oauth2_me<T>(
     extract::OAuth2User(user): extract::OAuth2User,
 ) -> ApiResponse<entity::OAuthUserAggregate>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     ApiResponse::with(user)
 }
@@ -118,7 +118,7 @@ async fn oauth2_testcallback<T>(
     Query(req): Query<HashMap<String, String>>,
 ) -> String
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     let kvstring =
         req.into_iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<_>>().join("&");
@@ -127,7 +127,7 @@ where
 
 pub fn routes<T>(t: Arc<T>) -> axum::Router
 where
-    T: ServiceProvider + 'static,
+    T: ServiceContainer + 'static,
 {
     axum::Router::new()
         .route(

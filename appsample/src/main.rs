@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{handler::HandlerWithoutStateExt, http::StatusCode};
-use module_user::interface::ServiceProvider;
+use module_user::interface::container::ServiceContainer;
 use stardust_core::repository::MigrationRepository;
 use stardust_core::service::MigrationService;
 use stardust_db::database::Database;

@@ -1,6 +1,14 @@
 use std::sync::Arc;
 
-use crate::interface::ServiceProvider;
+pub trait ServiceContainer:
+    module_user::interface::container::ServiceContainer + Sync + Send
+{
+    type OAuth2ClientService: crate::service::OAuth2ClientService;
+    type OAuth2AuthorizationService: crate::service::OAuth2AuthorizationService;
+
+    fn oauth2_client_service(&self) -> Arc<Self::OAuth2ClientService>;
+    fn oauth2_authorization_service(&self) -> Arc<Self::OAuth2AuthorizationService>;
+}
 
 pub struct Container<UC, CS, AS> {
     pub user_container: Arc<UC>,
@@ -10,7 +18,7 @@ pub struct Container<UC, CS, AS> {
 
 impl<UC, CS, AS> Container<UC, CS, AS>
 where
-    UC: module_user::interface::ServiceProvider,
+    UC: module_user::interface::container::ServiceContainer,
     CS: crate::service::OAuth2ClientService,
     AS: crate::service::OAuth2AuthorizationService,
 {
@@ -27,9 +35,9 @@ where
     }
 }
 
-impl<UC, CS, AS> ServiceProvider for Container<UC, CS, AS>
+impl<UC, CS, AS> ServiceContainer for Container<UC, CS, AS>
 where
-    UC: module_user::interface::ServiceProvider,
+    UC: module_user::interface::container::ServiceContainer,
     CS: crate::service::OAuth2ClientService,
     AS: crate::service::OAuth2AuthorizationService,
 {
@@ -44,9 +52,9 @@ where
     }
 }
 
-impl<UC, CS, AS> module_user::interface::ServiceProvider for Container<UC, CS, AS>
+impl<UC, CS, AS> module_user::interface::container::ServiceContainer for Container<UC, CS, AS>
 where
-    UC: module_user::interface::ServiceProvider,
+    UC: module_user::interface::container::ServiceContainer,
     CS: crate::service::OAuth2ClientService,
     AS: crate::service::OAuth2AuthorizationService,
 {

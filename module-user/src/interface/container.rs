@@ -1,6 +1,13 @@
 use std::sync::Arc;
 
-use crate::interface::ServiceProvider;
+pub trait ServiceContainer: Sync + Send {
+    type UserService: crate::service::UserService;
+    type ApiKeyService: crate::service::ApiKeyService;
+
+    fn user_service(&self) -> Arc<Self::UserService>;
+    fn apikey_service(&self) -> Arc<Self::ApiKeyService>;
+}
+
 
 pub struct Container<US, AKS> {
     pub user_service: Arc<US>,
@@ -20,7 +27,7 @@ where
     }
 }
 
-impl<US, AKS> ServiceProvider for Container<US, AKS>
+impl<US, AKS> ServiceContainer for Container<US, AKS>
 where
     US: crate::service::UserService,
     AKS: crate::service::ApiKeyService,

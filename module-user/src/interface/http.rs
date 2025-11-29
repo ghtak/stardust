@@ -11,7 +11,7 @@ use tower_sessions::Session;
 use crate::{
     command::{self, CreateApiKeyCommand},
     entity,
-    interface::{ServiceProvider, dto, extract::AuthUser},
+    interface::{container::ServiceContainer, dto, extract::AuthUser},
     query,
     service::{ApiKeyService, UserService},
 };
@@ -21,7 +21,7 @@ async fn signup<T>(
     Json(signup_request): Json<dto::SignupRequest>,
 ) -> Result<ApiResponse<dto::UserDto>, ApiResponse<()>>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     let command = signup_request.into();
     let user_aggregate: entity::UserAggregate =
@@ -40,7 +40,7 @@ async fn login<T>(
     Json(request): Json<dto::LoginRequest>,
 ) -> Result<ApiResponse<dto::UserDto>, ApiResponse<()>>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     let command = request.into();
     let user_aggregate: entity::UserAggregate =
@@ -57,7 +57,7 @@ where
 
 async fn logout<T>(State(_): State<Arc<T>>, s: Session) -> Result<ApiResponse<()>, ApiResponse<()>>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     session::remove_user(&s).await?;
     Ok(ApiResponse::ok())
@@ -68,7 +68,7 @@ async fn me<T>(
     AuthUser(authuser): AuthUser,
 ) -> Result<ApiResponse<dto::UserDto>, ApiResponse<()>>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     Ok(ApiResponse::with(dto::UserDto {
         username: authuser.username,
@@ -84,7 +84,7 @@ async fn create_apikey<T>(
     axum::Json(req): axum::Json<dto::CreateApiKeyRequest>,
 ) -> Result<ApiResponse<dto::CreateApiKeyResponse>, ApiResponse<()>>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     let command = CreateApiKeyCommand {
         user_id: user.id,
@@ -103,13 +103,11 @@ async fn get_apikey<T>(
     AuthUser(user): AuthUser,
 ) -> Result<ApiResponse<Vec<dto::ApiKeyDto>>, ApiResponse<()>>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     let result = container
         .apikey_service()
-        .find_apikeys(&query::FindApiKeysQuery {
-            user_id: user.id,
-        })
+        .find_apikeys(&query::FindApiKeysQuery { user_id: user.id })
         .await?;
     Ok(ApiResponse::with(
         result.into_iter().map(|a| a.into()).collect(),
@@ -122,7 +120,7 @@ async fn deactivate_apikey<T>(
     axum::extract::Path(id): axum::extract::Path<i64>,
 ) -> Result<ApiResponse<dto::ApiKeyDto>, ApiResponse<()>>
 where
-    T: ServiceProvider,
+    T: ServiceContainer,
 {
     let result = container
         .apikey_service()
@@ -136,7 +134,7 @@ where
 
 pub fn routes<T>(t: Arc<T>) -> axum::Router
 where
-    T: ServiceProvider + 'static,
+    T: ServiceContainer + 'static,
 {
     axum::Router::new()
         .route("/auth/user/signup", post(signup::<T>))
