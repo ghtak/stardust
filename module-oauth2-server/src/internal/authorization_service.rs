@@ -207,4 +207,11 @@ where
     ) -> stardust_common::Result<Option<entity::OAuthUserAggregate>> {
         self.authorization_repo.find_user(&mut self.database.handle(), &query).await
     }
+
+    async fn find_authorization(
+        &self,
+        query: &query::FindOAuth2AuthorizationQuery<'_>,
+    ) -> stardust_common::Result<Option<entity::OAuth2AuthorizationEntity>>{
+        self.authorization_repo.find_authorization(&mut self.database.handle(), &query).await
+    }
 }

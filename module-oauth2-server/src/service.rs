@@ -44,4 +44,9 @@ pub trait OAuth2AuthorizationService: Sync + Send {
         &self,
         query: &query::FindOAuth2UserQuery<'_>,
     ) -> stardust_common::Result<Option<entity::OAuthUserAggregate>>;
+
+    async fn find_authorization(
+        &self,
+        query: &query::FindOAuth2AuthorizationQuery<'_>,
+    ) -> stardust_common::Result<Option<entity::OAuth2AuthorizationEntity>>;
 }
