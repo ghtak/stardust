@@ -34,6 +34,7 @@ impl From<LoginRequest> for command::LoginCommand {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct UserDto {
+    pub id : i64,
     pub username: String,
     pub email: String,
     pub role: String,

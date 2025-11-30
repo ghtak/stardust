@@ -27,6 +27,7 @@ where
     let user_aggregate: entity::UserAggregate =
         container.user_service().signup(&command).await.map_err(|e| ApiResponse::from(e))?;
     Ok(ApiResponse::with(dto::UserDto {
+        id: user_aggregate.user.id,
         username: user_aggregate.user.username,
         email: user_aggregate.user.email,
         role: user_aggregate.user.role.to_string(),
@@ -48,6 +49,7 @@ where
 
     session::store_user(&session, &user_aggregate.user).await?;
     Ok(ApiResponse::with(dto::UserDto {
+        id: user_aggregate.user.id,
         username: user_aggregate.user.username,
         email: user_aggregate.user.email,
         role: user_aggregate.user.role.to_string(),
@@ -71,6 +73,7 @@ where
     T: ServiceContainer,
 {
     Ok(ApiResponse::with(dto::UserDto {
+        id: authuser.id,
         username: authuser.username,
         email: authuser.email,
         role: authuser.role.to_string(),
