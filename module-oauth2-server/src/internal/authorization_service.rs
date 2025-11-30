@@ -56,6 +56,7 @@ where
                 &query::FindOAuth2AuthorizationQuery {
                     auth_code_value: Some(code),
                     refresh_token_hash: None,
+                    access_token: None,
                 },
             )
             .await?
@@ -107,6 +108,7 @@ where
                 &query::FindOAuth2AuthorizationQuery {
                     auth_code_value: None,
                     refresh_token_hash: Some(&hash),
+                    access_token: None,
                 },
             )
             .await?
@@ -175,12 +177,15 @@ where
         command: &command::AuthorizeOAuth2Command<'_>,
     ) -> stardust_common::Result<entity::OAuth2AuthorizationEntity> {
         let client = self.verify(&command.verify_command).await?;
-        let authorization = entity::OAuth2AuthorizationEntity::new(
+        let mut authorization = entity::OAuth2AuthorizationEntity::new(
             client.id,
             command.principal.id,
             command.verify_command.scope.to_owned(),
             command.verify_command.state.to_owned(),
         );
+        if let Some(config) = &command.config {
+            authorization.config = config.clone();
+        }
         let auth = self
             .authorization_repo
             .create_authorization(&mut self.database.handle(), &authorization)
@@ -211,7 +216,7 @@ where
     async fn find_authorization(
         &self,
         query: &query::FindOAuth2AuthorizationQuery<'_>,
-    ) -> stardust_common::Result<Option<entity::OAuth2AuthorizationEntity>>{
+    ) -> stardust_common::Result<Option<entity::OAuth2AuthorizationEntity>> {
         self.authorization_repo.find_authorization(&mut self.database.handle(), &query).await
     }
 }

@@ -6,35 +6,6 @@ use crate::{
     query,
 };
 
-pub async fn create_table(handle: &mut stardust_core::migration::DatabaseHandleImpl<'_>) -> stardust_common::Result<()> {
-    sqlx::query(
-        r#"
-            CREATE TABLE IF NOT EXISTS oauth2_authorization (
-                id BIGSERIAL PRIMARY KEY,
-                oauth2_client_id BIGSERIAL NOT NULL,
-                principal_id BIGINT NOT NULL,
-                grant_type VARCHAR(50) NOT NULL,
-                scopes TEXT,
-                state VARCHAR(255),
-                auth_code_value VARCHAR(255),
-                auth_code_issued_at TIMESTAMPTZ,
-                auth_code_expires_at TIMESTAMPTZ,
-                access_token_value VARCHAR(255),
-                access_token_issued_at TIMESTAMPTZ,
-                access_token_expires_at TIMESTAMPTZ,
-                refresh_token_hash VARCHAR(255),
-                refresh_token_issued_at TIMESTAMPTZ,
-                refresh_token_expires_at TIMESTAMPTZ,
-                CONSTRAINT fk_oauth2_client_id FOREIGN KEY (oauth2_client_id) REFERENCES oauth2_client(id)
-            );
-        "#,
-    )
-    .execute(handle.executor())
-    .await
-    .map_err(stardust_db::into_error)?;
-    Ok(())
-}
-
 pub async fn create_authorization(
     handle: &mut postgres::Handle<'_>,
     entity: &crate::entity::OAuth2AuthorizationEntity,
@@ -44,7 +15,7 @@ pub async fn create_authorization(
             (oauth2_client_id, principal_id, grant_type, scopes, state,
             auth_code_value, auth_code_issued_at, auth_code_expires_at,
             access_token_value, access_token_issued_at, access_token_expires_at,
-            refresh_token_hash, refresh_token_issued_at, refresh_token_expires_at) "#,
+            refresh_token_hash, refresh_token_issued_at, refresh_token_expires_at, config) "#,
     );
     builder.push_values(std::iter::once(entity), |mut values, v| {
         values
@@ -61,7 +32,8 @@ pub async fn create_authorization(
             .push_bind(v.access_token_expires_at)
             .push_bind(&v.refresh_token_hash)
             .push_bind(v.refresh_token_issued_at)
-            .push_bind(v.refresh_token_expires_at);
+            .push_bind(v.refresh_token_expires_at)
+            .push_bind(&v.config);
     });
     builder.push(r#" RETURNING *"#);
 
@@ -86,6 +58,11 @@ pub async fn find_authorization(
     if let Some(refresh_token_hash) = &query.refresh_token_hash {
         builder.push(" AND refresh_token_hash = ");
         builder.push_bind(refresh_token_hash);
+    }
+
+    if let Some(access_token) = &query.access_token {
+        builder.push(" AND access_token_value = ");
+        builder.push_bind(access_token);
     }
 
     let row = builder
@@ -135,7 +112,8 @@ pub async fn find_user(
         r#"
         select
             row_to_json(c) as client_json,
-            row_to_json(u) as user_json
+            row_to_json(u) as user_json,
+            row_to_json(oa) as authorization_json
         from oauth2_authorization oa
         left join stardust_user u on oa.principal_id = u.id
         left join oauth2_client c on oa.oauth2_client_id = c.id
@@ -157,6 +135,7 @@ pub async fn find_user(
     Ok(Some(entity::OAuthUserAggregate {
         client: row.client.into(),
         user: row.user.into(),
+        authorization: row.authorization.into(),
     }))
 }
 

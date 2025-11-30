@@ -27,6 +27,7 @@ pub struct OAuth2AuthorizationEntity {
     pub refresh_token_hash: String,
     pub refresh_token_issued_at: chrono::DateTime<chrono::Utc>,
     pub refresh_token_expires_at: chrono::DateTime<chrono::Utc>,
+    pub config: serde_json::Value,
 }
 
 impl OAuth2AuthorizationEntity {
@@ -48,6 +49,7 @@ impl OAuth2AuthorizationEntity {
             refresh_token_hash: "".to_owned(),
             refresh_token_issued_at: now,
             refresh_token_expires_at: now,
+            config: serde_json::json!({}),
         }
     }
 
@@ -84,4 +86,5 @@ pub struct OAuth2Token {
 pub struct OAuthUserAggregate {
     pub user: module_user::entity::UserEntity,
     pub client: OAuth2ClientEntity,
+    pub authorization: OAuth2AuthorizationEntity,
 }

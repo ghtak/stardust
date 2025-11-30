@@ -58,6 +58,7 @@ impl crate::repository::MigrationRepository for PostgresMigrationRepository {
                 refresh_token_hash VARCHAR(255),
                 refresh_token_issued_at TIMESTAMPTZ,
                 refresh_token_expires_at TIMESTAMPTZ,
+                config JSONB NOT NULL,
                 CONSTRAINT fk_oauth2_client_id FOREIGN KEY (oauth2_client_id) REFERENCES oauth2_client(id)
             );
         "#,

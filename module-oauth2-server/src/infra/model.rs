@@ -48,6 +48,7 @@ pub struct OAuth2AuthorizationModel {
     refresh_token_hash: String,
     refresh_token_issued_at: chrono::DateTime<chrono::Utc>,
     refresh_token_expires_at: chrono::DateTime<chrono::Utc>,
+    config: serde_json::Value,
 }
 
 impl From<OAuth2AuthorizationModel> for entity::OAuth2AuthorizationEntity {
@@ -68,6 +69,7 @@ impl From<OAuth2AuthorizationModel> for entity::OAuth2AuthorizationEntity {
             refresh_token_hash: row.refresh_token_hash,
             refresh_token_issued_at: row.refresh_token_issued_at,
             refresh_token_expires_at: row.refresh_token_expires_at,
+            config: row.config,
         }
     }
 }
@@ -80,4 +82,7 @@ pub struct OAuth2AuthorizationUserModel {
 
     #[sqlx(json, rename = "user_json")]
     pub user: module_user::infra::model::UserModel,
+
+    #[sqlx(json, rename = "authorization_json")]
+    pub authorization: OAuth2AuthorizationModel,
 }

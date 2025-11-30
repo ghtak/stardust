@@ -83,6 +83,7 @@ where
         .authorize(&command::AuthorizeOAuth2Command {
             principal: &user.0,
             verify_command: &req.as_verify_command(),
+            config: None,
         })
         .await?;
     let redirect_url = format!(

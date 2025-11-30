@@ -30,6 +30,7 @@ pub struct VerifyOAuth2AuthorizationCommand<'a> {
 pub struct AuthorizeOAuth2Command<'a> {
     pub principal: &'a UserEntity,
     pub verify_command: &'a VerifyOAuth2AuthorizationCommand<'a>,
+    pub config: Option<serde_json::Value>,
 }
 
 pub struct TokenCommand<'a> {
