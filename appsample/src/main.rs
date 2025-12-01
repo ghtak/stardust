@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use axum::{handler::HandlerWithoutStateExt, http::StatusCode};
-use module_user::interface::container::ServiceContainer;
+use module_user::Container;
 use stardust_core::repository::MigrationRepository;
 use stardust_core::service::MigrationService;
 use stardust_db::database::Database;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::info_span;
 
-use crate::app::UserMigrationServiceImpl;
+use crate::{app::UserMigrationServiceImpl, container::AppContainer};
 
 mod app;
 mod container;
@@ -22,7 +22,7 @@ fn need_migration() -> bool {
     }
 }
 
-async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
+async fn migration(ct: Arc<AppContainer>) -> stardust_common::Result<()> {
     let migration_repo = Arc::new(app::MigrationRepositoryImpl::new());
     match migration_repo.create_table(&mut ct.database.handle()).await {
         Ok(_) => println!("Migration successful"),
@@ -32,7 +32,7 @@ async fn migration(ct: Arc<app::Container>) -> stardust_common::Result<()> {
     let user_migration = UserMigrationServiceImpl::new(
         ct.database.clone(),
         Arc::new(app::UserMigrationRepositoryImpl::new()),
-        ct.user_container.user_service(),
+        ct.user_service(),
         migration_repo.clone(),
     );
     match user_migration.migrate().await {
@@ -109,17 +109,15 @@ async fn main() {
     tracing::info!("config: {:?}", config);
     stardust_core::audit(0, "sys.init", serde_json::Value::Null);
 
-    let app_container = app::Container::build(config).await.unwrap();
+    let app_container = AppContainer::build(config).await.unwrap();
 
     if need_migration() {
         migration(app_container.clone()).await.unwrap();
     }
 
     let app_router = new_router(vec![
-        module_user::interface::http::routes(app_container.user_container.clone()),
-        module_oauth2_server::interface::http::routes(
-            app_container.oauth2_server_container.clone(),
-        ),
+        module_user::interface::http::routes(app_container.clone()),
+        module_oauth2_server::interface::http::routes(app_container.clone()),
     ])
     .await;
     let app_router = with_fallback_service(app_router, &app_container.config.server.http);

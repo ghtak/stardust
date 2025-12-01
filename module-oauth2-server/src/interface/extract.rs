@@ -6,14 +6,14 @@ use axum::{
 };
 use stardust_interface::http::ApiResponse;
 
-use crate::{entity, interface::container::ServiceContainer, query, service::OAuth2AuthorizationService};
+use crate::{entity, query, service::OAuth2AuthorizationService};
 
 #[derive(Debug)]
 pub struct OAuth2User(pub entity::OAuthUserAggregate);
 
 impl<S> FromRequestParts<Arc<S>> for OAuth2User
 where
-    S: ServiceContainer + Send + Sync,
+    S: crate::Container + Send + Sync,
     S::OAuth2AuthorizationService: OAuth2AuthorizationService,
 {
     type Rejection = ApiResponse<()>;
@@ -51,7 +51,7 @@ where
 
 impl<S> OptionalFromRequestParts<Arc<S>> for OAuth2User
 where
-    S: ServiceContainer + Send + Sync,
+    S: crate::Container + Send + Sync,
     S::OAuth2AuthorizationService: OAuth2AuthorizationService,
 {
     type Rejection = ApiResponse<()>;

@@ -7,7 +7,7 @@ use axum::{
 use stardust_interface::http::ApiResponse;
 use tower_sessions::Session;
 
-use crate::{entity::UserEntity, interface::container::ServiceContainer, query, service::ApiKeyService};
+use crate::{entity::UserEntity, query, service::ApiKeyService};
 
 pub const APIKEY_HEADER_NAME: &str = "X-ApiKey";
 
@@ -16,7 +16,7 @@ pub struct AuthUser(pub UserEntity);
 
 impl<S> FromRequestParts<Arc<S>> for AuthUser
 where
-    S: ServiceContainer + Send + Sync,
+    S: crate::Container + Send + Sync,
     S::ApiKeyService: ApiKeyService,
 {
     type Rejection = ApiResponse<()>;
@@ -45,7 +45,7 @@ where
 
 impl<S> OptionalFromRequestParts<Arc<S>> for AuthUser
 where
-    S: ServiceContainer + Send + Sync,
+    S: crate::Container + Send + Sync,
     S::ApiKeyService: ApiKeyService,
 {
     type Rejection = ApiResponse<()>;
@@ -75,7 +75,7 @@ pub struct AdminUser(pub UserEntity);
 
 impl<S> FromRequestParts<Arc<S>> for AdminUser
 where
-    S: ServiceContainer + Send + Sync,
+    S: crate::Container + Send + Sync,
     S::ApiKeyService: ApiKeyService,
 {
     type Rejection = ApiResponse<()>;
