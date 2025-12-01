@@ -1,4 +1,4 @@
-pub mod authorization_repo;
-pub mod client_repo;
+pub mod authorization_repository;
+pub mod client_repository;
 pub mod model;
-pub mod migration_repo;
+pub mod migration_repository;

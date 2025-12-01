@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use stardust_db::{database::Database, internal::postgres};
 
-use crate::{infra::apikey_repo, service::ApiKeyUsageTracker};
+use crate::{infra::apikey_repository, service::ApiKeyUsageTracker};
 
 pub struct ImmediateUsageTracker {
     database: postgres::Database,
@@ -17,7 +17,7 @@ impl ImmediateUsageTracker {
 #[async_trait::async_trait]
 impl ApiKeyUsageTracker for ImmediateUsageTracker {
     async fn track_usage(&self, apikey_id: i64) -> stardust_common::Result<()> {
-        if let Err(e) = apikey_repo::update_last_used_at(
+        if let Err(e) = apikey_repository::update_last_used_at(
             &mut self.database.handle(),
             apikey_id,
             chrono::Utc::now(),

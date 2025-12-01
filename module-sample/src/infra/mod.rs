@@ -1,1 +1,1 @@
-pub mod migration_repo;
+pub mod migration_repository;  

@@ -1,5 +1,5 @@
-pub mod apikey_repo;
+pub mod apikey_repository;
 pub mod model;
-pub mod user_repo;
-pub mod migration_repo;
+pub mod user_repository;
+pub mod migration_repository;
 pub mod mock;
