@@ -1,5 +1,5 @@
-mod sample_svc;
-mod migration_svc;
+mod sample_service;
+mod migration_service;
 
-pub use sample_svc::*;
-pub use migration_svc::*;
+pub use sample_service::*;
+pub use migration_service::*;

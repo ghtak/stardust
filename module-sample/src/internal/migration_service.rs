@@ -2,19 +2,19 @@ use std::sync::Arc;
 
 use stardust_db::database::Handle;
 
-pub struct MigrationServiceImpl<Database, SampleMigrationRepo, MigrationRepo> {
+pub struct MigrationServiceImpl<Database, SampleMigrationRepository, MigrationRepository> {
     database: Database,
-    sample_migration_repo: Arc<SampleMigrationRepo>,
-    migration_repo: Arc<MigrationRepo>,
+    sample_migration_repo: Arc<SampleMigrationRepository>,
+    migration_repo: Arc<MigrationRepository>,
 }
 
-impl<Database, SampleMigrationRepo, MigrationRepo>
-    MigrationServiceImpl<Database, SampleMigrationRepo, MigrationRepo>
+impl<Database, SampleMigrationRepository, MigrationRepository>
+    MigrationServiceImpl<Database, SampleMigrationRepository, MigrationRepository>
 {
     pub fn new(
         database: Database,
-        sample_migration_repo: Arc<SampleMigrationRepo>,
-        migration_repo: Arc<MigrationRepo>,
+        sample_migration_repo: Arc<SampleMigrationRepository>,
+        migration_repo: Arc<MigrationRepository>,
     ) -> Self {
         Self {
             database,
@@ -25,13 +25,14 @@ impl<Database, SampleMigrationRepo, MigrationRepo>
 }
 
 #[async_trait::async_trait]
-impl<Database, SampleMigrationRepo, MigrationRepo> stardust_core::service::MigrationService
-    for MigrationServiceImpl<Database, SampleMigrationRepo, MigrationRepo>
+impl<Database, SampleMigrationRepository, MigrationRepository>
+    stardust_core::service::MigrationService
+    for MigrationServiceImpl<Database, SampleMigrationRepository, MigrationRepository>
 where
     Database: stardust_db::database::Database + 'static,
-    SampleMigrationRepo:
+    SampleMigrationRepository:
         for<'h> crate::repository::MigrationRepository<Handle<'h> = Database::Handle<'h>>,
-    MigrationRepo:
+    MigrationRepository:
         for<'h> stardust_core::repository::MigrationRepository<Handle<'h> = Database::Handle<'h>>,
 {
     async fn migrate(&self) -> stardust_common::Result<()> {

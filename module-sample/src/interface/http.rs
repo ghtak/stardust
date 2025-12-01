@@ -2,24 +2,27 @@ use std::sync::Arc;
 
 use axum::extract::State;
 
-use crate::{interface::container::ServiceContainer, query, service::SampleService};
+use crate::{query, service::SampleService};
 
-async fn hello<ServiceCt>(service_container: State<Arc<ServiceCt>>) -> String
+async fn hello<C>(service_container: State<Arc<C>>) -> String
 where
-    ServiceCt: ServiceContainer,
+    C: crate::Container,
 {
-    let sample = service_container.sample_service().find_sample(
-        &query::FindSampleQuery { name: "nametest".into() }
-    ).await;
+    let sample = service_container
+        .sample_service()
+        .find_sample(&query::FindSampleQuery {
+            name: "nametest".into(),
+        })
+        .await;
     let sample = sample.unwrap();
     sample.name
 }
 
-pub fn routes<ServiceCt>(service_container: Arc<ServiceCt>) -> axum::Router
+pub fn routes<C>(service_container: Arc<C>) -> axum::Router
 where
-    ServiceCt: ServiceContainer + 'static,
+    C: crate::Container + 'static,
 {
     axum::Router::new()
-        .route("/hello", axum::routing::get(hello::<ServiceCt>))
+        .route("/hello", axum::routing::get(hello::<C>))
         .with_state(service_container)
 }
