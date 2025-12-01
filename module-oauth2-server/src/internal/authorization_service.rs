@@ -2,25 +2,26 @@ use std::sync::Arc;
 
 use crate::{command, entity, query, service};
 
-pub struct OAuth2AuthorizationServiceImpl<Database, AuthorizationRepo, ClientService, Hasher> {
+pub struct OAuth2AuthorizationServiceImpl<Database, AuthorizationRepository, ClientService, Hasher>
+{
     database: Database,
-    authorization_repo: Arc<AuthorizationRepo>,
+    authorization_repo: Arc<AuthorizationRepository>,
     oauth2_client_service: Arc<ClientService>,
     hasher: Arc<Hasher>,
 }
 
-impl<Database, AuthorizationRepo, ClientService, Hasher>
-    OAuth2AuthorizationServiceImpl<Database, AuthorizationRepo, ClientService, Hasher>
+impl<Database, AuthorizationRepository, ClientService, Hasher>
+    OAuth2AuthorizationServiceImpl<Database, AuthorizationRepository, ClientService, Hasher>
 where
     Database: stardust_db::database::Database + 'static,
-    AuthorizationRepo:
+    AuthorizationRepository:
         for<'h> crate::repository::AuthorizationRepository<Handle<'h> = Database::Handle<'h>>,
     ClientService: service::OAuth2ClientService,
     Hasher: stardust_common::hash::Hasher,
 {
     pub fn new(
         database: Database,
-        authorization_repo: Arc<AuthorizationRepo>,
+        authorization_repo: Arc<AuthorizationRepository>,
         oauth2_client_service: Arc<ClientService>,
         hasher: Arc<Hasher>,
     ) -> Self {
@@ -131,11 +132,11 @@ where
 }
 
 #[async_trait::async_trait]
-impl<Database, AuthorizationRepo, ClientService, Hasher> service::OAuth2AuthorizationService
-    for OAuth2AuthorizationServiceImpl<Database, AuthorizationRepo, ClientService, Hasher>
+impl<Database, AuthorizationRepository, ClientService, Hasher> service::OAuth2AuthorizationService
+    for OAuth2AuthorizationServiceImpl<Database, AuthorizationRepository, ClientService, Hasher>
 where
     Database: stardust_db::database::Database + 'static,
-    AuthorizationRepo:
+    AuthorizationRepository:
         for<'h> crate::repository::AuthorizationRepository<Handle<'h> = Database::Handle<'h>>,
     ClientService: service::OAuth2ClientService,
     Hasher: stardust_common::hash::Hasher,

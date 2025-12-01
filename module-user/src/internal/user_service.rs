@@ -7,19 +7,19 @@ use crate::{
 
 use stardust_db::database::Handle;
 
-pub struct UserServiceImpl<Database, UserRepo, Hasher> {
+pub struct UserServiceImpl<Database, UserRepository, Hasher> {
     database: Database,
-    user_repo: Arc<UserRepo>,
+    user_repo: Arc<UserRepository>,
     hasher: Arc<Hasher>,
 }
 
-impl<Database, UserRepo, Hasher> UserServiceImpl<Database, UserRepo, Hasher>
+impl<Database, UserRepository, Hasher> UserServiceImpl<Database, UserRepository, Hasher>
 where
     Database: stardust_db::database::Database,
-    UserRepo: for<'h> crate::repository::UserRepository<Handle<'h> = Database::Handle<'h>>,
+    UserRepository: for<'h> crate::repository::UserRepository<Handle<'h> = Database::Handle<'h>>,
     Hasher: stardust_common::hash::Hasher,
 {
-    pub fn new(database: Database, user_repo: Arc<UserRepo>, hasher: Arc<Hasher>) -> Self {
+    pub fn new(database: Database, user_repo: Arc<UserRepository>, hasher: Arc<Hasher>) -> Self {
         Self {
             database,
             hasher,
@@ -48,11 +48,11 @@ where
 }
 
 #[async_trait::async_trait]
-impl<Database, UserRepo, Hasher> crate::service::UserService
-    for UserServiceImpl<Database, UserRepo, Hasher>
+impl<Database, UserRepository, Hasher> crate::service::UserService
+    for UserServiceImpl<Database, UserRepository, Hasher>
 where
     Database: stardust_db::database::Database + 'static,
-    UserRepo: for<'h> crate::repository::UserRepository<Handle<'h> = Database::Handle<'h>>,
+    UserRepository: for<'h> crate::repository::UserRepository<Handle<'h> = Database::Handle<'h>>,
     Hasher: stardust_common::hash::Hasher,
 {
     async fn hello(&self) -> String {

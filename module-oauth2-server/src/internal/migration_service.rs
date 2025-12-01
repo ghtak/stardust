@@ -2,19 +2,19 @@ use std::sync::Arc;
 
 use stardust_db::database::Handle;
 
-pub struct MigrationServiceImpl<Database, OAuth2MigrationRepo, MigrationRepo> {
+pub struct MigrationServiceImpl<Database, OAuth2MigrationRepository, MigrationRepository> {
     database: Database,
-    oauth2_migration_repo: Arc<OAuth2MigrationRepo>,
-    migration_repo: Arc<MigrationRepo>,
+    oauth2_migration_repo: Arc<OAuth2MigrationRepository>,
+    migration_repo: Arc<MigrationRepository>,
 }
 
-impl<Database, OAuth2MigrationRepo, MigrationRepo>
-    MigrationServiceImpl<Database, OAuth2MigrationRepo, MigrationRepo>
+impl<Database, OAuth2MigrationRepository, MigrationRepository>
+    MigrationServiceImpl<Database, OAuth2MigrationRepository, MigrationRepository>
 {
     pub fn new(
         database: Database,
-        oauth2_migration_repo: Arc<OAuth2MigrationRepo>,
-        migration_repo: Arc<MigrationRepo>,
+        oauth2_migration_repo: Arc<OAuth2MigrationRepository>,
+        migration_repo: Arc<MigrationRepository>,
     ) -> Self {
         Self {
             database,
@@ -25,13 +25,14 @@ impl<Database, OAuth2MigrationRepo, MigrationRepo>
 }
 
 #[async_trait::async_trait]
-impl<Database, OAuth2MigrationRepo, MigrationRepo> stardust_core::service::MigrationService
-    for MigrationServiceImpl<Database, OAuth2MigrationRepo, MigrationRepo>
+impl<Database, OAuth2MigrationRepository, MigrationRepository>
+    stardust_core::service::MigrationService
+    for MigrationServiceImpl<Database, OAuth2MigrationRepository, MigrationRepository>
 where
     Database: stardust_db::database::Database + 'static,
-    OAuth2MigrationRepo:
+    OAuth2MigrationRepository:
         for<'h> crate::repository::MigrationRepository<Handle<'h> = Database::Handle<'h>>,
-    MigrationRepo:
+    MigrationRepository:
         for<'h> stardust_core::repository::MigrationRepository<Handle<'h> = Database::Handle<'h>>,
 {
     async fn migrate(&self) -> stardust_common::Result<()> {

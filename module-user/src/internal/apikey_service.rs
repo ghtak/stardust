@@ -4,23 +4,25 @@ use stardust_common::With;
 
 use crate::{command, entity, query, service::ApiKeyService};
 
-pub struct ApikeyServiceImpl<Database, ApiKeyRepo, Tracker, Hasher> {
+pub struct ApikeyServiceImpl<Database, ApiKeyRepository, Tracker, Hasher> {
     database: Database,
-    apikey_repo: Arc<ApiKeyRepo>,
+    apikey_repo: Arc<ApiKeyRepository>,
     tracker: Arc<Tracker>,
     hasher: Arc<Hasher>,
 }
 
-impl<Database, ApiKeyRepo, Tracker, Hasher> ApikeyServiceImpl<Database, ApiKeyRepo, Tracker, Hasher>
+impl<Database, ApiKeyRepository, Tracker, Hasher>
+    ApikeyServiceImpl<Database, ApiKeyRepository, Tracker, Hasher>
 where
     Database: stardust_db::database::Database,
-    ApiKeyRepo: for<'h> crate::repository::ApiKeyRepository<Handle<'h> = Database::Handle<'h>>,
+    ApiKeyRepository:
+        for<'h> crate::repository::ApiKeyRepository<Handle<'h> = Database::Handle<'h>>,
     Tracker: crate::service::ApiKeyUsageTracker,
     Hasher: stardust_common::hash::Hasher,
 {
     pub fn new(
         database: Database,
-        apikey_repo: Arc<ApiKeyRepo>,
+        apikey_repo: Arc<ApiKeyRepository>,
         tracker: Arc<Tracker>,
         hasher: Arc<Hasher>,
     ) -> Self {
@@ -33,11 +35,12 @@ where
     }
 }
 
-impl<Database, ApiKeyRepo, Tracker, Hasher> ApiKeyService
-    for ApikeyServiceImpl<Database, ApiKeyRepo, Tracker, Hasher>
+impl<Database, ApiKeyRepository, Tracker, Hasher> ApiKeyService
+    for ApikeyServiceImpl<Database, ApiKeyRepository, Tracker, Hasher>
 where
     Database: stardust_db::database::Database + 'static,
-    ApiKeyRepo: for<'h> crate::repository::ApiKeyRepository<Handle<'h> = Database::Handle<'h>>,
+    ApiKeyRepository:
+        for<'h> crate::repository::ApiKeyRepository<Handle<'h> = Database::Handle<'h>>,
     Tracker: crate::service::ApiKeyUsageTracker,
     Hasher: stardust_common::hash::Hasher,
 {

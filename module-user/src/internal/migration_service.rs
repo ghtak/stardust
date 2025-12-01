@@ -4,21 +4,22 @@ use stardust_db::database::Handle;
 
 use crate::entity;
 
-pub struct MigrationServiceImpl<Database, UserMigrationRepo, UserService, MigrationRepo> {
+pub struct MigrationServiceImpl<Database, UserMigrationRepository, UserService, MigrationRepository>
+{
     database: Database,
-    user_migration_repo: Arc<UserMigrationRepo>,
+    user_migration_repo: Arc<UserMigrationRepository>,
     user_service: Arc<UserService>,
-    migration_repo: Arc<MigrationRepo>,
+    migration_repo: Arc<MigrationRepository>,
 }
 
-impl<Database, UserMigrationRepo, UserService, MigrationRepo>
-    MigrationServiceImpl<Database, UserMigrationRepo, UserService, MigrationRepo>
+impl<Database, UserMigrationRepository, UserService, MigrationRepository>
+    MigrationServiceImpl<Database, UserMigrationRepository, UserService, MigrationRepository>
 {
     pub fn new(
         database: Database,
-        user_migration_repo: Arc<UserMigrationRepo>,
+        user_migration_repo: Arc<UserMigrationRepository>,
         user_service: Arc<UserService>,
-        migration_repo: Arc<MigrationRepo>,
+        migration_repo: Arc<MigrationRepository>,
     ) -> Self {
         Self {
             database,
@@ -30,15 +31,15 @@ impl<Database, UserMigrationRepo, UserService, MigrationRepo>
 }
 
 #[async_trait::async_trait]
-impl<Database, UserMigrationRepo, UserService, MigrationRepo>
+impl<Database, UserMigrationRepository, UserService, MigrationRepository>
     stardust_core::service::MigrationService
-    for MigrationServiceImpl<Database, UserMigrationRepo, UserService, MigrationRepo>
+    for MigrationServiceImpl<Database, UserMigrationRepository, UserService, MigrationRepository>
 where
     Database: stardust_db::database::Database + 'static,
-    UserMigrationRepo:
+    UserMigrationRepository:
         for<'h> crate::repository::MigrationRepository<Handle<'h> = Database::Handle<'h>>,
     UserService: crate::service::UserService + 'static,
-    MigrationRepo:
+    MigrationRepository:
         for<'h> stardust_core::repository::MigrationRepository<Handle<'h> = Database::Handle<'h>>,
 {
     async fn migrate(&self) -> stardust_common::Result<()> {
