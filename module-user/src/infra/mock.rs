@@ -20,13 +20,13 @@ impl MockUserRepository {
 
 #[async_trait::async_trait]
 impl crate::repository::UserRepository for MockUserRepository {
-    type Handle<'h> = stardust_db::internal::mock::Handle<'h>;
+    type Handle<'h> = stardust::database::internal::mock::Handle<'h>;
 
     async fn create_user(
         &self,
         _handle: &mut Self::Handle<'_>,
         user_entity: &entity::UserEntity,
-    ) -> stardust_common::Result<entity::UserEntity> {
+    ) -> stardust::Result<entity::UserEntity> {
         let mut user_store = self.user_store.lock().await;
         user_store.insert(user_entity.id, user_entity.clone());
         Ok(user_entity.clone())
@@ -36,7 +36,7 @@ impl crate::repository::UserRepository for MockUserRepository {
         &self,
         _handle: &mut Self::Handle<'_>,
         user_account_entity: &entity::UserAccountEntity,
-    ) -> stardust_common::Result<entity::UserAccountEntity> {
+    ) -> stardust::Result<entity::UserAccountEntity> {
         let mut account_store = self.account_store.lock().await;
         account_store.insert(user_account_entity.uid.clone(), user_account_entity.clone());
         Ok(user_account_entity.clone())
@@ -46,7 +46,7 @@ impl crate::repository::UserRepository for MockUserRepository {
         &self,
         _handle: &mut Self::Handle<'_>,
         q: &query::FindUserQuery<'_>,
-    ) -> stardust_common::Result<Option<entity::UserEntity>> {
+    ) -> stardust::Result<Option<entity::UserEntity>> {
         let user_store = self.user_store.lock().await;
         for (k, v) in &*user_store {
             if let Some(id) = q.id {
@@ -82,7 +82,7 @@ impl crate::repository::UserRepository for MockUserRepository {
         &self,
         _handle: &mut Self::Handle<'_>,
         user_id: i64,
-    ) -> stardust_common::Result<Vec<crate::entity::UserAccountEntity>> {
+    ) -> stardust::Result<Vec<crate::entity::UserAccountEntity>> {
         let mut results = Vec::new();
         let account_store = self.account_store.lock().await;
         for (_,v) in &*account_store {
@@ -97,7 +97,7 @@ impl crate::repository::UserRepository for MockUserRepository {
         &self,
         _handle: &mut Self::Handle<'_>,
         _query: &crate::query::FindUserQuery<'_>,
-    ) -> stardust_common::Result<Option<entity::UserAggregate>> {
+    ) -> stardust::Result<Option<entity::UserAggregate>> {
         if let Some(user) = self.find_user(_handle, _query).await? {
             let accounts = self.find_user_accounts(_handle, user.id).await?;
             return Ok(Some(entity::UserAggregate {
@@ -112,7 +112,7 @@ impl crate::repository::UserRepository for MockUserRepository {
         &self,
         _handle: &mut Self::Handle<'_>,
         user_account_entity: &entity::UserAccountEntity,
-    ) -> stardust_common::Result<entity::UserAccountEntity> {
+    ) -> stardust::Result<entity::UserAccountEntity> {
         let mut account_store = self.account_store.lock().await;
         let account = account_store.get_mut(&user_account_entity.uid).unwrap();
         *account = user_account_entity.clone();

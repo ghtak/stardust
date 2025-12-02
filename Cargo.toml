@@ -6,7 +6,9 @@ members = [
     "stardust-core",
     "module-user",
     "module-oauth2-server",
-    "appsample", "module-sample", "stardust", "stardust-app",
+    "module-sample",
+    "stardust",
+    "stardust-app",
 ]
 
 resolver = "3"

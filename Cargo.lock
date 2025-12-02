@@ -54,27 +54,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
-name = "appsample"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "module-oauth2-server",
- "module-user",
- "serde",
- "serde_json",
- "stardust-common",
- "stardust-core",
- "stardust-db",
- "stardust-interface",
- "thiserror",
- "tokio",
- "tower-http",
- "tower-sessions",
- "tracing",
-]
-
-[[package]]
 name = "argon2"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1296,10 +1275,6 @@ dependencies = [
  "serde_json",
  "sqlx",
  "stardust",
- "stardust-common",
- "stardust-core",
- "stardust-db",
- "stardust-interface",
  "tokio",
  "tower",
  "tower-sessions",

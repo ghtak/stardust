@@ -60,9 +60,8 @@ pub struct ApiKeyEntity {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ApiKeyUserAggregate {
     pub apikey_id: i64,
-    pub user: UserEntity
+    pub user: UserEntity,
 }
-
 
 impl std::fmt::Display for AccountType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -73,15 +72,12 @@ impl std::fmt::Display for AccountType {
 }
 
 impl FromStr for AccountType {
-    type Err = stardust_common::Error;
+    type Err = stardust::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Local" => Ok(AccountType::Local),
-            _ => Err(stardust_common::Error::ParseError(anyhow::anyhow!(
-                "Invalid AccountType: {}",
-                s
-            ))),
+            _ => Err(anyhow::anyhow!("Invalid AccountType: {}", s).into()),
         }
     }
 }
@@ -96,16 +92,13 @@ impl std::fmt::Display for Role {
 }
 
 impl FromStr for Role {
-    type Err = stardust_common::Error;
+    type Err = stardust::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Admin" => Ok(Role::Admin),
             "User" => Ok(Role::User),
-            _ => Err(stardust_common::Error::ParseError(anyhow::anyhow!(
-                "Invalid Role: {}",
-                s
-            ))),
+            _ => Err(anyhow::anyhow!("Invalid Role: {}", s).into()),
         }
     }
 }
@@ -120,16 +113,13 @@ impl std::fmt::Display for Status {
 }
 
 impl FromStr for Status {
-    type Err = stardust_common::Error;
+    type Err = stardust::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Active" => Ok(Status::Active),
             "Inactive" => Ok(Status::Inactive),
-            _ => Err(stardust_common::Error::ParseError(anyhow::anyhow!(
-                "Invalid Status: {}",
-                s
-            ))),
+            _ => Err(anyhow::anyhow!("Invalid Status: {}", s).into()),
         }
     }
 }

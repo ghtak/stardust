@@ -1,35 +1,35 @@
-use stardust_db::internal::postgres;
+use stardust::database::internal::postgres;
 
 use crate::{entity, infra::model, query};
 
-pub async fn create_table(
-    handle: &mut stardust_core::migration::DatabaseHandleImpl<'_>,
-) -> stardust_common::Result<()> {
-    sqlx::query(
-        r#"
-            create table if not exists stardust_apikey (
-                id BIGSERIAL PRIMARY KEY,
-                user_id BIGINT not null,
-                key_hash varchar(255) not null,
-                prefix varchar(255) not null,
-                description varchar(255) not null,
-                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                last_used_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                deactivated_at TIMESTAMPTZ
-            );
-        "#,
-    )
-    .execute(handle.executor())
-    .await
-    .map_err(stardust_db::into_error)?;
-    Ok(())
-}
+// pub async fn create_table(
+//     handle: &mut stardust_core::migration::DatabaseHandleImpl<'_>,
+// ) -> stardust::Result<()> {
+//     sqlx::query(
+//         r#"
+//             create table if not exists stardust_apikey (
+//                 id BIGSERIAL PRIMARY KEY,
+//                 user_id BIGINT not null,
+//                 key_hash varchar(255) not null,
+//                 prefix varchar(255) not null,
+//                 description varchar(255) not null,
+//                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+//                 updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+//                 last_used_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+//                 deactivated_at TIMESTAMPTZ
+//             );
+//         "#,
+//     )
+//     .execute(handle.executor())
+//     .await
+//     .map_err(stardust_db::into_error)?;
+//     Ok(())
+// }
 
 pub async fn create_apikey(
     handle: &mut postgres::Handle<'_>,
     entity: &entity::ApiKeyEntity,
-) -> stardust_common::Result<entity::ApiKeyEntity> {
+) -> stardust::Result<entity::ApiKeyEntity> {
     let mut builder = sqlx::QueryBuilder::new(
         r#"INSERT INTO stardust_apikey (user_id, key_hash, prefix, description,
         created_at, updated_at) "#,
@@ -50,14 +50,14 @@ pub async fn create_apikey(
         .build_query_as::<crate::infra::model::ApiKeyModel>()
         .fetch_one(handle.executor())
         .await
-        .map_err(stardust_db::into_error)?;
+        .map_err(stardust::database::internal::into_error)?;
     Ok(row.into())
 }
 
 pub async fn find_user(
     handle: &mut postgres::Handle<'_>,
     query: &query::FindApiKeyUserQuery<'_>,
-) -> stardust_common::Result<Option<entity::ApiKeyUserAggregate>> {
+) -> stardust::Result<Option<entity::ApiKeyUserAggregate>> {
     let mut builder = sqlx::QueryBuilder::new(
         r#"
         select
@@ -74,7 +74,7 @@ pub async fn find_user(
         .build_query_as::<model::ApiKeyUserModel>()
         .fetch_optional(handle.executor())
         .await
-        .map_err(stardust_db::into_error)?;
+        .map_err(stardust::database::internal::into_error)?;
 
     let Some(row) = row else {
         return Ok(None);
@@ -89,7 +89,7 @@ pub async fn find_user(
 pub async fn find_apikeys(
     handle: &mut postgres::Handle<'_>,
     q: &query::FindApiKeysQuery,
-) -> stardust_common::Result<Vec<entity::ApiKeyEntity>> {
+) -> stardust::Result<Vec<entity::ApiKeyEntity>> {
     let mut builder = sqlx::QueryBuilder::new("SELECT * FROM stardust_apikey WHERE user_id = ");
     builder.push_bind(q.user_id);
 
@@ -97,7 +97,7 @@ pub async fn find_apikeys(
         .build_query_as::<model::ApiKeyModel>()
         .fetch_all(handle.executor())
         .await
-        .map_err(stardust_db::into_error)?;
+        .map_err(stardust::database::internal::into_error)?;
 
     return Ok(rows.into_iter().map(Into::into).collect());
 }
@@ -105,7 +105,7 @@ pub async fn find_apikeys(
 pub async fn get_apikey(
     handle: &mut postgres::Handle<'_>,
     id: i64,
-) -> stardust_common::Result<Option<entity::ApiKeyEntity>> {
+) -> stardust::Result<Option<entity::ApiKeyEntity>> {
     let mut builder = sqlx::QueryBuilder::new("SELECT * FROM stardust_apikey WHERE id = ");
     builder.push_bind(id);
 
@@ -113,7 +113,7 @@ pub async fn get_apikey(
         .build_query_as::<model::ApiKeyModel>()
         .fetch_optional(handle.executor())
         .await
-        .map_err(stardust_db::into_error)?;
+        .map_err(stardust::database::internal::into_error)?;
 
     Ok(row.map(Into::into))
 }
@@ -121,7 +121,7 @@ pub async fn get_apikey(
 pub async fn save_apikey(
     handle: &mut postgres::Handle<'_>,
     entity: &entity::ApiKeyEntity,
-) -> stardust_common::Result<entity::ApiKeyEntity> {
+) -> stardust::Result<entity::ApiKeyEntity> {
     let mut builder = sqlx::QueryBuilder::new("UPDATE stardust_apikey SET ");
 
     builder.push("description = ");
@@ -142,7 +142,7 @@ pub async fn save_apikey(
         .build_query_as::<model::ApiKeyModel>()
         .fetch_one(handle.executor())
         .await
-        .map_err(stardust_db::into_error)?;
+        .map_err(stardust::database::internal::into_error)?;
 
     Ok(row.into())
 }
@@ -151,7 +151,7 @@ pub async fn update_last_used_at(
     handle: &mut postgres::Handle<'_>,
     id: i64,
     last_used_at: chrono::DateTime<chrono::Utc>,
-) -> stardust_common::Result<()> {
+) -> stardust::Result<()> {
     sqlx::QueryBuilder::new("UPDATE stardust_apikey SET ")
         .push("last_used_at = ")
         .push_bind(last_used_at)
@@ -162,7 +162,7 @@ pub async fn update_last_used_at(
         .build()
         .execute(handle.executor())
         .await
-        .map_err(stardust_db::into_error)?;
+        .map_err(stardust::database::internal::into_error)?;
     Ok(())
 }
 
@@ -176,13 +176,13 @@ impl PostgresApiKeyRepository {
 
 #[async_trait::async_trait]
 impl crate::repository::ApiKeyRepository for PostgresApiKeyRepository {
-    type Handle<'h> = stardust_db::internal::postgres::Handle<'h>;
+    type Handle<'h> = stardust::database::internal::postgres::Handle<'h>;
 
     async fn create_apikey(
         &self,
         handle: &mut Self::Handle<'_>,
         entity: &entity::ApiKeyEntity,
-    ) -> stardust_common::Result<entity::ApiKeyEntity> {
+    ) -> stardust::Result<entity::ApiKeyEntity> {
         create_apikey(handle, entity).await
     }
 
@@ -190,7 +190,7 @@ impl crate::repository::ApiKeyRepository for PostgresApiKeyRepository {
         &self,
         handle: &mut Self::Handle<'_>,
         query: &query::FindApiKeyUserQuery<'_>,
-    ) -> stardust_common::Result<Option<entity::ApiKeyUserAggregate>> {
+    ) -> stardust::Result<Option<entity::ApiKeyUserAggregate>> {
         find_user(handle, query).await
     }
 
@@ -198,7 +198,7 @@ impl crate::repository::ApiKeyRepository for PostgresApiKeyRepository {
         &self,
         handle: &mut Self::Handle<'_>,
         q: &query::FindApiKeysQuery,
-    ) -> stardust_common::Result<Vec<entity::ApiKeyEntity>> {
+    ) -> stardust::Result<Vec<entity::ApiKeyEntity>> {
         find_apikeys(handle, q).await
     }
 
@@ -206,7 +206,7 @@ impl crate::repository::ApiKeyRepository for PostgresApiKeyRepository {
         &self,
         handle: &mut Self::Handle<'_>,
         id: i64,
-    ) -> stardust_common::Result<Option<entity::ApiKeyEntity>> {
+    ) -> stardust::Result<Option<entity::ApiKeyEntity>> {
         get_apikey(handle, id).await
     }
 
@@ -214,7 +214,7 @@ impl crate::repository::ApiKeyRepository for PostgresApiKeyRepository {
         &self,
         handle: &mut Self::Handle<'_>,
         entity: &entity::ApiKeyEntity,
-    ) -> stardust_common::Result<entity::ApiKeyEntity> {
+    ) -> stardust::Result<entity::ApiKeyEntity> {
         save_apikey(handle, entity).await
     }
 
@@ -223,7 +223,7 @@ impl crate::repository::ApiKeyRepository for PostgresApiKeyRepository {
         handle: &mut Self::Handle<'_>,
         id: i64,
         last_used_at: chrono::DateTime<chrono::Utc>,
-    ) -> stardust_common::Result<()> {
+    ) -> stardust::Result<()> {
         update_last_used_at(handle, id, last_used_at).await
     }
 }
