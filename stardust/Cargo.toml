@@ -1,11 +1,12 @@
 [package]
-name = "stardust-common"
+name = "stardust"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
 argon2 = { version = "0.5.3", features = ["rand"] }
+async-trait = "0.1.89"
 base64 = "0.22.1"
 config = "0.15.19"
 rand_core = { version = "0.9.3", features = ["os_rng", "std"] }
@@ -17,3 +18,19 @@ tracing = "0.1.43"
 tracing-appender = "0.2.4"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
 uuid = { version = "1.19.0", features = ["v4"] }
+sqlx = { version = "0.8.6", features = [
+    "mysql",
+    "postgres",
+    "runtime-tokio",
+    "sqlite",
+    "tls-rustls",
+] }
+futures-core = "0.3.31"
+axum = { version = "0.8.7", features = ["multipart"] }
+tower = "0.5.2"
+tower-sessions = "0.14.0"
+tower-trace = "0.0.0"
+tower-http = { version = "0.6.7", features = ["full", "tracing"] }
+chrono = { version = "0.4.42", features = ["serde"] }
+serde_json = "1.0.145"
+bytes = "1.11.0"

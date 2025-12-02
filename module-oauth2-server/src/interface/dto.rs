@@ -93,7 +93,7 @@ pub struct OAuth2TokenRequest {
 }
 
 impl OAuth2TokenRequest {
-    pub fn as_command(&self) -> command::TokenCommand {
+    pub fn as_command(&self) -> command::TokenCommand<'_> {
         command::TokenCommand {
             grant_type: self.grant_type.as_str(),
             client_id: self.client_id.as_str(),
