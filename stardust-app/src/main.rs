@@ -1,5 +1,3 @@
-use stardust::database::Database;
-
 #[tokio::main]
 async fn main() {
     let config = stardust::config::Config::test_config();
@@ -10,7 +8,8 @@ async fn main() {
             .await
             .unwrap();
 
-    stardust::migration::init(&mut database.handle()).await.unwrap();
+    stardust::infra::migration::init(database.clone()).await.unwrap();
+    module_user::infra::migration::migrate(database.clone()).await.unwrap();
 
     stardust::http::run_server(
         &config.server,

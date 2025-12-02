@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 stardust = { path = "../stardust" }
+module-user = { path = "../module-user" }
 anyhow = "1.0.100"
 argon2 = { version = "0.5.3", features = ["rand"] }
 async-trait = "0.1.89"
