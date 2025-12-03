@@ -41,7 +41,7 @@ bytes = "1.11.0"
 tonic = "*"
 prost = "*"
 tonic-prost = "*"
-tonic-reflection = "0.14.2"
+tonic-reflection = "*"
 
 [build-dependencies]
 tonic-prost-build = "*"
