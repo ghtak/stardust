@@ -38,3 +38,18 @@ tower-http = { version = "0.6.7", features = ["full", "tracing"] }
 chrono = { version = "0.4.42", features = ["serde"] }
 serde_json = "1.0.145"
 bytes = "1.11.0"
+tonic = "*"
+prost = "*"
+tonic-prost = "*"
+tonic-reflection = "0.14.2"
+
+[build-dependencies]
+tonic-prost-build = "*"
+
+[[bin]]
+name = "grpc-server"
+path = "src/grpc_server.rs"
+
+[[bin]]
+name = "grpc-client"
+path = "src/grpc_client.rs"
