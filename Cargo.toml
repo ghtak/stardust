@@ -1,13 +1,9 @@
 [workspace]
 members = [
-    "stardust-common",
-    "stardust-db",
-    "stardust-interface",
-    "stardust-core",
+    "stardust",
     "module-user",
     "module-oauth2-server",
     "module-sample",
-    "stardust",
     "stardust-app",
 ]
 

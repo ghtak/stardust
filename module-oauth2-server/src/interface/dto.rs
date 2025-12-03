@@ -60,7 +60,9 @@ pub struct OAuth2AuthorizeRequest {
 }
 
 impl OAuth2AuthorizeRequest {
-    pub fn as_verify_command(&self) -> command::VerifyOAuth2AuthorizationCommand<'_> {
+    pub fn as_verify_command(
+        &self,
+    ) -> command::VerifyOAuth2AuthorizationCommand<'_> {
         command::VerifyOAuth2AuthorizationCommand {
             response_type: &self.response_type,
             client_id: &self.client_id,
@@ -78,7 +80,11 @@ impl OAuth2AuthorizeRequest {
             ("scope", self.scope.as_str()),
             ("state", self.state.as_str()),
         ];
-        params.iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<String>>().join("&")
+        params
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect::<Vec<String>>()
+            .join("&")
     }
 }
 

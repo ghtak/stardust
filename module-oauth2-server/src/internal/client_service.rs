@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use crate::{command, entity, query, service::OAuth2ClientService};
 
@@ -28,16 +28,18 @@ impl<Database, ClientRepository, Hasher>
 impl<Database, ClientRepository, Hasher> OAuth2ClientService
     for OAuth2ClientServiceImpl<Database, ClientRepository, Hasher>
 where
-    Database: stardust_db::database::Database + 'static,
-    ClientRepository:
-        for<'h> crate::repository::ClientRepository<Handle<'h> = Database::Handle<'h>>,
-    Hasher: stardust_common::hash::Hasher,
+    Database: stardust::database::Database + 'static,
+    ClientRepository: for<'h> crate::repository::ClientRepository<
+            Handle<'h> = Database::Handle<'h>,
+        >,
+    Hasher: stardust::hash::Hasher,
 {
     async fn create_client(
         &self,
         command: &command::CreateOAuth2ClientCommand,
-    ) -> stardust_common::Result<entity::OAuth2ClientEntity> {
-        let client_secret_hash = self.hasher.hash(&command.client_secret)?;
+    ) -> stardust::Result<entity::OAuth2ClientEntity> {
+        let client_secret_hash =
+            self.hasher.hash(&command.client_secret).await?;
         let entity = entity::OAuth2ClientEntity {
             id: 0,
             name: command.name.clone(),
@@ -48,28 +50,33 @@ where
             auth_methods: command.auth_methods.clone(),
             scopes: command.scopes.clone(),
         };
-        let entity = self.client_repo.create_client(&mut self.database.handle(), &entity).await?;
+        let entity = self
+            .client_repo
+            .create_client(&mut self.database.handle(), &entity)
+            .await?;
         Ok(entity)
     }
 
     async fn find_clients(
         &self,
         query: &query::FindOAuth2ClientQuery<'_>,
-    ) -> stardust_common::Result<Vec<entity::OAuth2ClientEntity>> {
+    ) -> stardust::Result<Vec<entity::OAuth2ClientEntity>> {
         self.client_repo.find_clients(&mut self.database.handle(), &query).await
     }
 
     async fn delete_client(
         &self,
         command: &command::DeleteOAuth2ClientCommand,
-    ) -> stardust_common::Result<()> {
-        self.client_repo.delete_client(&mut self.database.handle(), &command).await
+    ) -> stardust::Result<()> {
+        self.client_repo
+            .delete_client(&mut self.database.handle(), &command)
+            .await
     }
 
     async fn verify(
         &self,
         command: &command::VerifyOAuth2ClientCommand<'_>,
-    ) -> stardust_common::Result<()> {
+    ) -> stardust::Result<()> {
         let clients = self
             .find_clients(&query::FindOAuth2ClientQuery {
                 client_id: Some(command.client_id),
@@ -77,13 +84,18 @@ where
             .await?;
 
         if clients.len() == 0 {
-            return Err(stardust_common::Error::NotFound);
+            return Err(stardust::Error::NotFound(Cow::Owned(
+                command.client_id.to_owned(),
+            )));
         }
 
         let client = clients.first().unwrap();
-        let result = self.hasher.verify(&command.client_secret, &client.client_secret_hash)?;
-        if !result.is_valid {
-            return Err(stardust_common::Error::InvalidParameter(
+        let result = self
+            .hasher
+            .verify(&command.client_secret, &client.client_secret_hash)
+            .await?;
+        if !result {
+            return Err(stardust::Error::InvalidParameter(
                 "Invalid client secret".into(),
             ));
         }

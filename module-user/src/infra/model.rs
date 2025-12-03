@@ -16,7 +16,10 @@ impl From<UserModel> for crate::entity::UserEntity {
             username: model.username,
             email: model.email,
             role: model.role.parse().unwrap_or(crate::entity::Role::User),
-            status: model.status.parse().unwrap_or(crate::entity::Status::Inactive),
+            status: model
+                .status
+                .parse()
+                .unwrap_or(crate::entity::Status::Inactive),
             created_at: model.created_at,
             updated_at: model.updated_at,
         }
@@ -38,7 +41,10 @@ impl From<UserAccountModel> for crate::entity::UserAccountEntity {
         Self {
             uid: model.uid,
             user_id: model.user_id,
-            account_type: model.account_type.parse().unwrap_or(crate::entity::AccountType::Local),
+            account_type: model
+                .account_type
+                .parse()
+                .unwrap_or(crate::entity::AccountType::Local),
             password_hash: model.password_hash,
             created_at: model.created_at,
             updated_at: model.updated_at,
@@ -86,7 +92,7 @@ impl From<ApiKeyModel> for crate::entity::ApiKeyEntity {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct ApiKeyUserModel {
-    pub apikey_id : i64,
+    pub apikey_id: i64,
 
     #[sqlx(flatten)]
     pub user: UserModel,

@@ -1,8 +1,16 @@
+use std::sync::Arc;
+
 use stardust::database::Database;
 
-pub async fn migrate(
+use crate::service::UserService;
+
+pub async fn migrate<C>(
     database: stardust::infra::migration::Database,
-) -> stardust::Result<()> {
+    container: Arc<C>,
+) -> stardust::Result<()>
+where
+    C: crate::Container + 'static,
+{
     const NAME: &str = "user_migration";
     let mut handle = database.handle();
     let mut migration =
@@ -63,7 +71,32 @@ pub async fn migrate(
             stardust::infra::migration::save(&mut handle, &migration).await?;
     }
 
-    if migration.version == 1 {}
+    if migration.version == 1 {
+        tracing::info!("migration 1 begin");
+        container
+            .user_service()
+            .signup(&crate::command::SignupCommand::Provisioned {
+                username: "admin".into(),
+                email: "admin@stardust.io".into(),
+                password: "1qaz2wsx!".into(),
+                account_type: crate::entity::AccountType::Local,
+                role: crate::entity::Role::Admin,
+                status: crate::entity::Status::Active,
+            })
+            .await?;
+        migration.name = NAME.into();
+        migration.version = 2;
+        migration.description = "add admin user".into();
+        migration = stardust::infra::migration::save(
+            &mut database.handle(),
+            &migration,
+        )
+        .await?;
+    }
+
+    if migration.version == 2 {
+        // No more migrations yet
+    }
 
     Ok(())
 }

@@ -1,0 +1,119 @@
+
+###
+# @me
+GET http://localhost:5299/auth/user/me
+
+
+###
+# @login
+POST http://localhost:5299/auth/user/login
+Content-Type: application/json
+
+{
+    "email": "admin@stardust.io",
+    "password": "1qaz2wsx!"
+}
+
+
+###
+# @me
+GET http://localhost:5299/auth/user/me
+
+
+###
+# @logout
+POST http://localhost:5299/auth/user/logout
+
+
+
+###
+# @me
+GET http://localhost:5299/auth/user/me
+
+
+###
+# @signup
+POST http://localhost:5299/auth/user/signup
+Content-Type: application/json
+
+{
+    "email": "test@stardust.io",
+    "password": "1qaz2wsx!",
+    "username": "test"
+}
+
+###
+# @login
+POST http://localhost:5299/auth/user/login
+Content-Type: application/json
+
+{
+    "email": "test@stardust.io",
+    "password": "1qaz2wsx!"
+}
+
+
+###
+# @me
+GET http://localhost:5299/auth/user/me
+
+
+###
+# @logout
+POST http://localhost:5299/auth/user/logout
+
+
+
+###
+# @me
+GET http://localhost:5299/auth/user/me
+
+
+###
+# @login
+POST http://localhost:5299/auth/user/login
+Content-Type: application/json
+
+{
+    "email": "test@stardust.io",
+    "password": "1qaz2wsx!"
+}
+
+###
+# @create apikey
+
+POST http://localhost:5299/auth/user/apikey
+Content-Type: application/json
+
+{
+    "description" : "testsample"
+}
+
+
+# {
+#   "id": 2,
+#   "key": "a39da2d5acc34d7b8e26895c57c629ef",
+#   "description": "testsample"
+# }
+
+###
+# @logout
+POST http://localhost:5299/auth/user/logout
+
+
+###
+# @me
+GET http://localhost:5299/auth/user/me
+x-apikey : a39da2d5acc34d7b8e26895c57c629ef
+
+
+###
+# @get apikey
+GET http://localhost:5299/auth/user/apikey
+x-apikey : a39da2d5acc34d7b8e26895c57c629ef
+
+###
+# @delete apikey
+
+DELETE http://localhost:5299/auth/user/apikey/1
+X-ApiKey : e9eb29c6a7a949b2a30cb52059e582a5

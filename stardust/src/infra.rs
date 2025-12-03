@@ -23,16 +23,15 @@ pub mod migration {
     }
 
     pub type Database = crate::database::internal::postgres::Database;
-    pub type Handle<'h> = <Database as crate::database::Database>::Handle<'h>;
+    pub type Handle<'h> = crate::database::internal::postgres::Handle<'h>;
 
     pub async fn init(database: Database) -> crate::Result<()> {
         sqlx::query(
-            r#"CREATE TABLE IF NOT EXISTS stardust_migration (
+            r#" CREATE TABLE IF NOT EXISTS stardust_migration (
             name VARCHAR(255) NOT NULL,
             version INT NOT NULL,
             description VARCHAR(255) NOT NULL,
-            updated_at TIMESTAMPTZ NOT NULL
-            );"#,
+            updated_at TIMESTAMPTZ NOT NULL );"#,
         )
         .execute(database.handle().executor())
         .await

@@ -5,5 +5,5 @@ pub trait MigrationRepository: Sync + Send {
     async fn create_sample_store(
         &self,
         handle: &mut Self::Handle<'_>,
-    ) -> stardust_common::Result<()>;
+    ) -> stardust::Result<()>;
 }

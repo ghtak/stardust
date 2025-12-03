@@ -1,30 +1,33 @@
-use std::sync::Arc;
+use std::{marker::PhantomData, sync::Arc};
 
 use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
-    http::{StatusCode, header},
+    http::header,
+    response::IntoResponse,
 };
-use stardust_interface::http::ApiResponse;
 
 use crate::{entity, query, service::OAuth2AuthorizationService};
 
 #[derive(Debug)]
-pub struct OAuth2User(pub entity::OAuthUserAggregate);
+pub struct OAuth2User<R>(pub entity::OAuthUserAggregate, pub PhantomData<R>);
 
-impl<S> FromRequestParts<Arc<S>> for OAuth2User
+impl<S, R> OptionalFromRequestParts<Arc<S>> for OAuth2User<R>
 where
     S: crate::Container + Send + Sync,
     S::OAuth2AuthorizationService: OAuth2AuthorizationService,
+    R: From<stardust::Error> + IntoResponse + Send,
 {
-    type Rejection = ApiResponse<()>;
+    type Rejection = R;
 
     async fn from_request_parts(
         parts: &mut axum::http::request::Parts,
         state: &Arc<S>,
-    ) -> Result<Self, Self::Rejection> {
-        let unauthorized = ApiResponse::error(axum::http::StatusCode::UNAUTHORIZED, "Unauthorized");
-        let Some(authorization) =
-            parts.headers.get(header::AUTHORIZATION).and_then(|h| h.to_str().ok())
+    ) -> Result<Option<Self>, Self::Rejection> {
+        let unauthorized = R::from(stardust::Error::Unauthorized);
+        let Some(authorization) = parts
+            .headers
+            .get(header::AUTHORIZATION)
+            .and_then(|h| h.to_str().ok())
         else {
             return Err(unauthorized);
         };
@@ -39,31 +42,32 @@ where
         let entity = state
             .oauth2_authorization_service()
             .find_user(&query::FindOAuth2UserQuery { access_token })
-            .await?;
+            .await
+            .map_err(R::from)?;
 
         let Some(entity) = entity else {
             return Err(unauthorized);
         };
 
-        Ok(Self(entity))
+        Ok(Some(Self(entity, PhantomData)))
     }
 }
 
-impl<S> OptionalFromRequestParts<Arc<S>> for OAuth2User
+impl<S, R> FromRequestParts<Arc<S>> for OAuth2User<R>
 where
     S: crate::Container + Send + Sync,
     S::OAuth2AuthorizationService: OAuth2AuthorizationService,
+    R: From<stardust::Error> + IntoResponse + Send,
 {
-    type Rejection = ApiResponse<()>;
+    type Rejection = R;
 
     async fn from_request_parts(
         parts: &mut axum::http::request::Parts,
         state: &Arc<S>,
-    ) -> Result<Option<Self>, Self::Rejection> {
-        match <OAuth2User as FromRequestParts<Arc<S>>>::from_request_parts(parts, state).await {
-            Ok(user) => Ok(Some(user)),
-            Err(e) if e.code == StatusCode::UNAUTHORIZED => Ok(None),
-            Err(e) => Err(e),
+    ) -> Result<Self, Self::Rejection> {
+        match <OAuth2User<R> as OptionalFromRequestParts<Arc<S>>>::from_request_parts(parts, state).await {
+            Ok(Some(user)) => Ok(user),
+            _ => Err(R::from(stardust::Error::Unauthorized)),
         }
     }
 }

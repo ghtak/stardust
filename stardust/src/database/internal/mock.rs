@@ -7,7 +7,6 @@ impl Database {
     }
 }
 
-
 pub struct Handle<'a> {
     pub db: &'a Database,
 }

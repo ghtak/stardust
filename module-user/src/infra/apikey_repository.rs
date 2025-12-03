@@ -2,30 +2,6 @@ use stardust::database::internal::postgres;
 
 use crate::{entity, infra::model, query};
 
-// pub async fn create_table(
-//     handle: &mut stardust_core::migration::DatabaseHandleImpl<'_>,
-// ) -> stardust::Result<()> {
-//     sqlx::query(
-//         r#"
-//             create table if not exists stardust_apikey (
-//                 id BIGSERIAL PRIMARY KEY,
-//                 user_id BIGINT not null,
-//                 key_hash varchar(255) not null,
-//                 prefix varchar(255) not null,
-//                 description varchar(255) not null,
-//                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-//                 updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-//                 last_used_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-//                 deactivated_at TIMESTAMPTZ
-//             );
-//         "#,
-//     )
-//     .execute(handle.executor())
-//     .await
-//     .map_err(stardust_db::into_error)?;
-//     Ok(())
-// }
-
 pub async fn create_apikey(
     handle: &mut postgres::Handle<'_>,
     entity: &entity::ApiKeyEntity,
@@ -90,7 +66,9 @@ pub async fn find_apikeys(
     handle: &mut postgres::Handle<'_>,
     q: &query::FindApiKeysQuery,
 ) -> stardust::Result<Vec<entity::ApiKeyEntity>> {
-    let mut builder = sqlx::QueryBuilder::new("SELECT * FROM stardust_apikey WHERE user_id = ");
+    let mut builder = sqlx::QueryBuilder::new(
+        "SELECT * FROM stardust_apikey WHERE user_id = ",
+    );
     builder.push_bind(q.user_id);
 
     let rows = builder
@@ -106,7 +84,8 @@ pub async fn get_apikey(
     handle: &mut postgres::Handle<'_>,
     id: i64,
 ) -> stardust::Result<Option<entity::ApiKeyEntity>> {
-    let mut builder = sqlx::QueryBuilder::new("SELECT * FROM stardust_apikey WHERE id = ");
+    let mut builder =
+        sqlx::QueryBuilder::new("SELECT * FROM stardust_apikey WHERE id = ");
     builder.push_bind(id);
 
     let row = builder

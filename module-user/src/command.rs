@@ -19,28 +19,29 @@ pub enum SignupCommand {
 impl SignupCommand {
     pub fn username(&self) -> &str {
         match self {
-            SignupCommand::Local { username, .. } | SignupCommand::Provisioned { username, .. } => {
-                username
-            }
+            SignupCommand::Local { username, .. }
+            | SignupCommand::Provisioned { username, .. } => username,
         }
     }
 
     pub fn email(&self) -> &str {
         match self {
-            SignupCommand::Local { email, .. } | SignupCommand::Provisioned { email, .. } => email,
+            SignupCommand::Local { email, .. }
+            | SignupCommand::Provisioned { email, .. } => email,
         }
     }
     pub fn password(&self) -> &str {
         match self {
-            SignupCommand::Local { password, .. } | SignupCommand::Provisioned { password, .. } => {
-                password
-            }
+            SignupCommand::Local { password, .. }
+            | SignupCommand::Provisioned { password, .. } => password,
         }
     }
     pub fn account_type(&self) -> AccountType {
         match self {
             SignupCommand::Local { .. } => AccountType::Local,
-            SignupCommand::Provisioned { account_type, .. } => account_type.clone(),
+            SignupCommand::Provisioned { account_type, .. } => {
+                account_type.clone()
+            }
         }
     }
     pub fn role(&self) -> Role {

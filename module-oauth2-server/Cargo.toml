@@ -4,10 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-stardust-common = { path = "../stardust-common" }
-stardust-db = { path = "../stardust-db" }
-stardust-core = { path = "../stardust-core" }
-stardust-interface = { path = "../stardust-interface" }
+stardust = { path = "../stardust" }
 module-user = { path = "../module-user" }
 anyhow = "1.0.100"
 chrono = { version = "0.4.42", features = ["serde"] }

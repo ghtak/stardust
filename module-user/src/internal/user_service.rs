@@ -51,11 +51,11 @@ where
                     )
                     .await
                 {
-                    tracing::warn!("failed to save user account: {:?}", e);
+                    tracing::error!("failed to save user account: {:?}", e);
                 }
             }
             Err(e) => {
-                tracing::warn!("failed to rehash password: {:?}", e);
+                tracing::error!("failed to rehash password: {:?}", e);
             }
         }
     }
@@ -71,10 +71,6 @@ where
         >,
     Hasher: stardust::hash::Hasher,
 {
-    async fn hello(&self) -> String {
-        "hello".into()
-    }
-
     async fn signup(
         &self,
         command: &SignupCommand,
@@ -112,7 +108,7 @@ where
             created_at: now,
             updated_at: now,
         };
-        let _account_entity = self
+        let _ = self
             .user_repo
             .create_user_account(&mut handle, &user_account_entity)
             .await?;
@@ -176,8 +172,6 @@ mod tests {
             repo.clone(),
             hasher,
         );
-        let result = service.hello().await;
-        assert_eq!(result, "hello");
 
         service
             .signup(&command::SignupCommand::Local {

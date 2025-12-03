@@ -14,5 +14,7 @@ pub trait Container: module_user::Container + Sync + Send {
     type OAuth2AuthorizationService: crate::service::OAuth2AuthorizationService;
 
     fn oauth2_client_service(&self) -> Arc<Self::OAuth2ClientService>;
-    fn oauth2_authorization_service(&self) -> Arc<Self::OAuth2AuthorizationService>;
+    fn oauth2_authorization_service(
+        &self,
+    ) -> Arc<Self::OAuth2AuthorizationService>;
 }

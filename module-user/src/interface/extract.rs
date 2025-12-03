@@ -1,68 +1,83 @@
-use std::{ops::Deref, sync::Arc};
+use std::{marker::PhantomData, ops::Deref, sync::Arc};
 
 use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
-    http::StatusCode,
+    response::IntoResponse,
 };
-use stardust_interface::http::ApiResponse;
 use tower_sessions::Session;
 
 use crate::{entity::UserEntity, query, service::ApiKeyService};
 
-pub const APIKEY_HEADER_NAME: &str = "X-ApiKey";
+pub const APIKEY_HEADER_NAME: &str = "x-apikey";
 
 #[derive(Debug)]
-pub struct AuthUser(pub UserEntity);
+pub struct AuthUser<R>(pub UserEntity, pub PhantomData<R>);
 
-impl<S> FromRequestParts<Arc<S>> for AuthUser
+impl<S, R> OptionalFromRequestParts<Arc<S>> for AuthUser<R>
 where
     S: crate::Container + Send + Sync,
     S::ApiKeyService: ApiKeyService,
+    R: From<stardust::Error> + IntoResponse,
 {
-    type Rejection = ApiResponse<()>;
-
-    async fn from_request_parts(
-        parts: &mut axum::http::request::Parts,
-        s: &Arc<S>,
-    ) -> Result<Self, Self::Rejection> {
-        if let Some(key_hash) = parts.headers.get(APIKEY_HEADER_NAME).and_then(|h| h.to_str().ok())
-        {
-            if let Some(apikey_user) =
-                s.apikey_service().find_user(&query::FindApiKeyUserQuery { key_hash }).await?
-            {
-                return Ok(Self(apikey_user.user));
-            }
-        }
-        let session = Session::from_request_parts(parts, s)
-            .await
-            .map_err(|e| ApiResponse::error(e.0, e.1))?;
-        match stardust_interface::http::session::get_user::<UserEntity>(&session).await? {
-            Some(user) => Ok(Self(user)),
-            _ => Err(ApiResponse::error(StatusCode::UNAUTHORIZED, "Unauthorized")),
-        }
-    }
-}
-
-impl<S> OptionalFromRequestParts<Arc<S>> for AuthUser
-where
-    S: crate::Container + Send + Sync,
-    S::ApiKeyService: ApiKeyService,
-{
-    type Rejection = ApiResponse<()>;
+    type Rejection = R;
 
     async fn from_request_parts(
         parts: &mut axum::http::request::Parts,
         state: &Arc<S>,
     ) -> Result<Option<Self>, Self::Rejection> {
-        match <AuthUser as FromRequestParts<Arc<S>>>::from_request_parts(parts, state).await {
-            Ok(user) => Ok(Some(user)),
-            Err(e) if e.code == StatusCode::UNAUTHORIZED => Ok(None),
-            Err(e) => Err(e),
+        if let Some(key) =
+            parts.headers.get(APIKEY_HEADER_NAME).and_then(|h| h.to_str().ok())
+        {
+            if let Some(apikey_user) = state
+                .apikey_service()
+                .find_user(&query::FindApiKeyUserQuery { key_hash: key })
+                .await
+                .map_err(R::from)?
+            {
+                return Ok(Some(Self(apikey_user.user, PhantomData)));
+            }
+        }
+        let session =
+            Session::from_request_parts(parts, state).await.map_err(|e| {
+                R::from(stardust::Error::Unhandled(anyhow::anyhow!(
+                    "from session error {:?}",
+                    e
+                )))
+            })?;
+        match stardust::http::session::get_user::<UserEntity>(&session)
+            .await
+            .map_err(R::from)?
+        {
+            Some(user) => Ok(Some(Self(user, PhantomData))),
+            None => Ok(None),
         }
     }
 }
 
-impl Deref for AuthUser {
+impl<S, R> FromRequestParts<Arc<S>> for AuthUser<R>
+where
+    S: crate::Container + Send + Sync,
+    S::ApiKeyService: ApiKeyService,
+    R: From<stardust::Error> + IntoResponse,
+{
+    type Rejection = R;
+
+    async fn from_request_parts(
+        parts: &mut axum::http::request::Parts,
+        state: &Arc<S>,
+    ) -> Result<Self, Self::Rejection> {
+        match <AuthUser<R> as OptionalFromRequestParts<Arc<S>>>::from_request_parts(
+            parts, state,
+        )
+        .await
+        {
+            Ok(Some(user)) => Ok(user),
+            _ => Err(R::from(stardust::Error::Unauthorized)),
+        }
+    }
+}
+
+impl<R> Deref for AuthUser<R> {
     type Target = UserEntity;
 
     fn deref(&self) -> &Self::Target {
@@ -71,25 +86,30 @@ impl Deref for AuthUser {
 }
 
 #[derive(Debug)]
-pub struct AdminUser(pub UserEntity);
+pub struct AdminUser<R>(pub UserEntity, pub PhantomData<R>);
 
-impl<S> FromRequestParts<Arc<S>> for AdminUser
+impl<S, R> FromRequestParts<Arc<S>> for AdminUser<R>
 where
     S: crate::Container + Send + Sync,
     S::ApiKeyService: ApiKeyService,
+    R: From<stardust::Error> + IntoResponse,
 {
-    type Rejection = ApiResponse<()>;
+    type Rejection = R;
 
     async fn from_request_parts(
         parts: &mut axum::http::request::Parts,
-        s: &Arc<S>,
+        state: &Arc<S>,
     ) -> Result<Self, Self::Rejection> {
-        match <AuthUser as FromRequestParts<Arc<S>>>::from_request_parts(parts, s).await {
+        match <AuthUser<R> as FromRequestParts<Arc<S>>>::from_request_parts(
+            parts, state,
+        )
+        .await
+        {
             Ok(authuser) => {
                 if authuser.0.role == crate::entity::Role::Admin {
-                    Ok(Self(authuser.0))
+                    Ok(Self(authuser.0, PhantomData))
                 } else {
-                    Err(ApiResponse::error(StatusCode::FORBIDDEN, "Forbidden"))
+                    Err(R::from(stardust::Error::Forbidden))
                 }
             }
             Err(e) => Err(e),

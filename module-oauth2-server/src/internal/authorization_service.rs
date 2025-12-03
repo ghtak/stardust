@@ -1,9 +1,13 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use crate::{command, entity, query, service};
 
-pub struct OAuth2AuthorizationServiceImpl<Database, AuthorizationRepository, ClientService, Hasher>
-{
+pub struct OAuth2AuthorizationServiceImpl<
+    Database,
+    AuthorizationRepository,
+    ClientService,
+    Hasher,
+> {
     database: Database,
     authorization_repo: Arc<AuthorizationRepository>,
     oauth2_client_service: Arc<ClientService>,
@@ -11,13 +15,19 @@ pub struct OAuth2AuthorizationServiceImpl<Database, AuthorizationRepository, Cli
 }
 
 impl<Database, AuthorizationRepository, ClientService, Hasher>
-    OAuth2AuthorizationServiceImpl<Database, AuthorizationRepository, ClientService, Hasher>
+    OAuth2AuthorizationServiceImpl<
+        Database,
+        AuthorizationRepository,
+        ClientService,
+        Hasher,
+    >
 where
-    Database: stardust_db::database::Database + 'static,
-    AuthorizationRepository:
-        for<'h> crate::repository::AuthorizationRepository<Handle<'h> = Database::Handle<'h>>,
+    Database: stardust::database::Database + 'static,
+    AuthorizationRepository: for<'h> crate::repository::AuthorizationRepository<
+            Handle<'h> = Database::Handle<'h>,
+        >,
     ClientService: service::OAuth2ClientService,
-    Hasher: stardust_common::hash::Hasher,
+    Hasher: stardust::hash::Hasher,
 {
     pub fn new(
         database: Database,
@@ -36,9 +46,9 @@ where
     pub async fn issue_token(
         &self,
         command: &command::TokenCommand<'_>,
-    ) -> stardust_common::Result<entity::OAuth2Token> {
+    ) -> stardust::Result<entity::OAuth2Token> {
         let Some(code) = command.code else {
-            return Err(stardust_common::Error::InvalidParameter(
+            return Err(stardust::Error::InvalidParameter(
                 "Invalid code".into(),
             ));
         };
@@ -62,18 +72,20 @@ where
             )
             .await?
         else {
-            return Err(stardust_common::Error::NotFound);
+            return Err(stardust::Error::NotFound(Cow::Owned(code.to_owned())));
         };
 
         if auth.auth_code_expires_at < chrono::Utc::now() {
-            return Err(stardust_common::Error::Expired("code is expired".into()));
+            return Err(stardust::Error::Unauthorized);
         }
 
-        let access_token = stardust_common::utils::generate_uid();
-        let refresh_token = stardust_common::utils::generate_uid();
-        let refresh_token_hash = self.hasher.hash(&refresh_token)?;
+        let access_token = stardust::utils::generate_uid();
+        let refresh_token = stardust::utils::generate_uid();
+        let refresh_token_hash = self.hasher.hash(&refresh_token).await?;
         auth.issue_token(access_token.clone(), refresh_token_hash);
-        self.authorization_repo.save_authorization(&mut self.database.handle(), &auth).await?;
+        self.authorization_repo
+            .save_authorization(&mut self.database.handle(), &auth)
+            .await?;
         let token = entity::OAuth2Token {
             access_token,
             expires_in: 3600,
@@ -87,9 +99,9 @@ where
     pub async fn refresh_token(
         &self,
         command: &command::TokenCommand<'_>,
-    ) -> stardust_common::Result<entity::OAuth2Token> {
+    ) -> stardust::Result<entity::OAuth2Token> {
         let Some(refresh_token) = command.refresh_token else {
-            return Err(stardust_common::Error::InvalidParameter(
+            return Err(stardust::Error::InvalidParameter(
                 "Invalid refresh_token".into(),
             ));
         };
@@ -101,7 +113,7 @@ where
             })
             .await?;
 
-        let hash = self.hasher.hash(&refresh_token)?;
+        let hash = self.hasher.hash(&refresh_token).await?;
         let Some(mut auth) = self
             .authorization_repo
             .find_authorization(
@@ -114,12 +126,16 @@ where
             )
             .await?
         else {
-            return Err(stardust_common::Error::NotFound);
+            return Err(stardust::Error::NotFound(Cow::Owned(
+                refresh_token.to_owned(),
+            )));
         };
 
-        let access_token = stardust_common::utils::generate_uid();
+        let access_token = stardust::utils::generate_uid();
         auth.refresh_token(access_token.clone());
-        self.authorization_repo.save_authorization(&mut self.database.handle(), &auth).await?;
+        self.authorization_repo
+            .save_authorization(&mut self.database.handle(), &auth)
+            .await?;
         let token = entity::OAuth2Token {
             access_token,
             expires_in: 3600,
@@ -132,19 +148,26 @@ where
 }
 
 #[async_trait::async_trait]
-impl<Database, AuthorizationRepository, ClientService, Hasher> service::OAuth2AuthorizationService
-    for OAuth2AuthorizationServiceImpl<Database, AuthorizationRepository, ClientService, Hasher>
+impl<Database, AuthorizationRepository, ClientService, Hasher>
+    service::OAuth2AuthorizationService
+    for OAuth2AuthorizationServiceImpl<
+        Database,
+        AuthorizationRepository,
+        ClientService,
+        Hasher,
+    >
 where
-    Database: stardust_db::database::Database + 'static,
-    AuthorizationRepository:
-        for<'h> crate::repository::AuthorizationRepository<Handle<'h> = Database::Handle<'h>>,
+    Database: stardust::database::Database + 'static,
+    AuthorizationRepository: for<'h> crate::repository::AuthorizationRepository<
+            Handle<'h> = Database::Handle<'h>,
+        >,
     ClientService: service::OAuth2ClientService,
-    Hasher: stardust_common::hash::Hasher,
+    Hasher: stardust::hash::Hasher,
 {
     async fn verify(
         &self,
         command: &command::VerifyOAuth2AuthorizationCommand<'_>,
-    ) -> stardust_common::Result<entity::OAuth2ClientEntity> {
+    ) -> stardust::Result<entity::OAuth2ClientEntity> {
         let clients = self
             .oauth2_client_service
             .find_clients(&query::FindOAuth2ClientQuery {
@@ -153,19 +176,24 @@ where
             .await?;
 
         if clients.len() == 0 {
-            return Err(stardust_common::Error::NotFound);
+            return Err(stardust::Error::NotFound(Cow::Owned(
+                command.client_id.to_owned(),
+            )));
         }
 
         let client = clients.first().unwrap();
 
-        if !stardust_common::utils::contains(&client.redirect_uris, &command.redirect_uri) {
-            return Err(stardust_common::Error::InvalidParameter(
+        if !stardust::utils::contains(
+            &client.redirect_uris,
+            &command.redirect_uri,
+        ) {
+            return Err(stardust::Error::InvalidParameter(
                 "Invalid Redirect uri".into(),
             ));
         }
 
-        if !stardust_common::utils::contains(&client.scopes, &command.scope) {
-            return Err(stardust_common::Error::InvalidParameter(
+        if !stardust::utils::contains(&client.scopes, &command.scope) {
+            return Err(stardust::Error::InvalidParameter(
                 "Invalid scope".into(),
             ));
         }
@@ -176,7 +204,7 @@ where
     async fn authorize(
         &self,
         command: &command::AuthorizeOAuth2Command<'_>,
-    ) -> stardust_common::Result<entity::OAuth2AuthorizationEntity> {
+    ) -> stardust::Result<entity::OAuth2AuthorizationEntity> {
         let client = self.verify(&command.verify_command).await?;
         let mut authorization = entity::OAuth2AuthorizationEntity::new(
             client.id,
@@ -197,11 +225,11 @@ where
     async fn token(
         &self,
         command: &command::TokenCommand<'_>,
-    ) -> stardust_common::Result<entity::OAuth2Token> {
+    ) -> stardust::Result<entity::OAuth2Token> {
         match command.grant_type {
             "authorization_code" => self.issue_token(&command).await,
             "refresh_token" => self.refresh_token(&command).await,
-            _ => Err(stardust_common::Error::InvalidParameter(
+            _ => Err(stardust::Error::InvalidParameter(
                 "Invalid grant_type".into(),
             )),
         }
@@ -210,14 +238,18 @@ where
     async fn find_user(
         &self,
         query: &query::FindOAuth2UserQuery<'_>,
-    ) -> stardust_common::Result<Option<entity::OAuthUserAggregate>> {
-        self.authorization_repo.find_user(&mut self.database.handle(), &query).await
+    ) -> stardust::Result<Option<entity::OAuthUserAggregate>> {
+        self.authorization_repo
+            .find_user(&mut self.database.handle(), &query)
+            .await
     }
 
     async fn find_authorization(
         &self,
         query: &query::FindOAuth2AuthorizationQuery<'_>,
-    ) -> stardust_common::Result<Option<entity::OAuth2AuthorizationEntity>> {
-        self.authorization_repo.find_authorization(&mut self.database.handle(), &query).await
+    ) -> stardust::Result<Option<entity::OAuth2AuthorizationEntity>> {
+        self.authorization_repo
+            .find_authorization(&mut self.database.handle(), &query)
+            .await
     }
 }

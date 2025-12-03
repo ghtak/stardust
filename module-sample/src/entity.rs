@@ -1,5 +1,3 @@
-
-pub struct HelloEntity{
+pub struct HelloEntity {
     pub name: String,
 }
-

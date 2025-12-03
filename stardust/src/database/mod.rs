@@ -21,6 +21,5 @@ pub trait Database: Sync + Send {
     ) -> impl std::future::Future<Output = crate::Result<Self::Handle<'_>>> + Send;
 }
 
-
 // pub trait Context<'c>: sqlx::Executor<'c, Database = DefaultDriver> {}
 // impl<'c, T> Context<'c> for T where T: sqlx::Executor<'c, Database = DefaultDriver> {}

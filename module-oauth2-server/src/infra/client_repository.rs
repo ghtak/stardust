@@ -1,11 +1,11 @@
-use stardust_db::internal::postgres;
+use stardust::database::internal::postgres;
 
 use crate::{command, entity, infra::model, query};
 
 pub async fn create_client(
     handle: &mut postgres::Handle<'_>,
     entity: &entity::OAuth2ClientEntity,
-) -> stardust_common::Result<entity::OAuth2ClientEntity> {
+) -> stardust::Result<entity::OAuth2ClientEntity> {
     let mut querybuilder = sqlx::QueryBuilder::new(
         r#"INSERT INTO oauth2_client (client_id, client_secret_hash, name,
             redirect_uris, grant_types, auth_methods, scopes, token_settings) "#,
@@ -27,7 +27,7 @@ pub async fn create_client(
         .build_query_as::<model::OAuth2ClientModel>()
         .fetch_one(handle.executor())
         .await
-        .map_err(stardust_db::into_error)?;
+        .map_err(stardust::database::internal::into_error)?;
 
     Ok(row.into())
 }
@@ -35,8 +35,9 @@ pub async fn create_client(
 pub async fn find_clients(
     handle: &mut postgres::Handle<'_>,
     query: &crate::query::FindOAuth2ClientQuery<'_>,
-) -> stardust_common::Result<Vec<entity::OAuth2ClientEntity>> {
-    let mut querybuilder = sqlx::QueryBuilder::new("SELECT * FROM oauth2_client where 1 = 1 ");
+) -> stardust::Result<Vec<entity::OAuth2ClientEntity>> {
+    let mut querybuilder =
+        sqlx::QueryBuilder::new("SELECT * FROM oauth2_client where 1 = 1 ");
     if let Some(ref client_id) = query.client_id {
         querybuilder.push(" AND client_id = ");
         querybuilder.push_bind(client_id);
@@ -48,7 +49,7 @@ pub async fn find_clients(
         .build_query_as::<model::OAuth2ClientModel>()
         .fetch_all(handle.executor())
         .await
-        .map_err(stardust_db::into_error)?;
+        .map_err(stardust::database::internal::into_error)?;
 
     Ok(rows.into_iter().map(Into::into).collect())
 }
@@ -56,10 +57,15 @@ pub async fn find_clients(
 pub async fn delete_client(
     handle: &mut postgres::Handle<'_>,
     command: &crate::command::DeleteOAuth2ClientCommand,
-) -> stardust_common::Result<()> {
-    let mut querybuilder = sqlx::QueryBuilder::new("DELETE FROM oauth2_client where id = ");
+) -> stardust::Result<()> {
+    let mut querybuilder =
+        sqlx::QueryBuilder::new("DELETE FROM oauth2_client where id = ");
     querybuilder.push_bind(command.id);
-    querybuilder.build().execute(handle.executor()).await.map_err(stardust_db::into_error)?;
+    querybuilder
+        .build()
+        .execute(handle.executor())
+        .await
+        .map_err(stardust::database::internal::into_error)?;
     Ok(())
 }
 
@@ -79,7 +85,7 @@ impl crate::repository::ClientRepository for PostgresClientRepository {
         &self,
         handle: &mut Self::Handle<'_>,
         entity: &entity::OAuth2ClientEntity,
-    ) -> stardust_common::Result<entity::OAuth2ClientEntity> {
+    ) -> stardust::Result<entity::OAuth2ClientEntity> {
         create_client(handle, entity).await
     }
 
@@ -87,7 +93,7 @@ impl crate::repository::ClientRepository for PostgresClientRepository {
         &self,
         handle: &mut Self::Handle<'_>,
         query: &query::FindOAuth2ClientQuery<'_>,
-    ) -> stardust_common::Result<Vec<entity::OAuth2ClientEntity>> {
+    ) -> stardust::Result<Vec<entity::OAuth2ClientEntity>> {
         find_clients(handle, query).await
     }
 
@@ -95,7 +101,7 @@ impl crate::repository::ClientRepository for PostgresClientRepository {
         &self,
         handle: &mut Self::Handle<'_>,
         command: &command::DeleteOAuth2ClientCommand,
-    ) -> stardust_common::Result<()> {
+    ) -> stardust::Result<()> {
         delete_client(handle, command).await
     }
 }

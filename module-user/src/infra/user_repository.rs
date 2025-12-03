@@ -6,45 +6,6 @@ use crate::{
     query,
 };
 
-// pub async fn create_table(
-//     handle: &mut stardust_core::migration::DatabaseHandleImpl<'_>,
-// ) -> stardust::Result<()> {
-//     sqlx::query(
-//         r#"
-//             create table if not exists stardust_user (
-//                 id BIGSERIAL PRIMARY KEY,
-//                 username varchar(255) not null,
-//                 email varchar(255) not null,
-//                 role varchar(255) not null,
-//                 status varchar(255) not null,
-//                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-//                 updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-//             );
-//         "#,
-//     )
-//     .execute(handle.executor())
-//     .await
-//     .map_err(stardust_db::into_error)?;
-
-//     sqlx::query(
-//         r#"
-//             create table if not exists stardust_user_account (
-//                 uid varchar(255) primary key,
-//                 user_id BIGINT not null,
-//                 account_type varchar(255) not null,
-//                 password_hash varchar(255) not null,
-//                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-//                 updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-//             );
-//         "#,
-//     )
-//     .execute(handle.executor())
-//     .await
-//     .map_err(stardust_db::into_error)?;
-
-//     Ok(())
-// }
-
 pub async fn create_user(
     handle: &mut postgres::Handle<'_>,
     user_entity: &entity::UserEntity,

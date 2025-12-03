@@ -6,7 +6,8 @@ use crate::{entity, query};
 
 pub struct MockUserRepository {
     pub user_store: Arc<Mutex<HashMap<i64, crate::entity::UserEntity>>>,
-    pub account_store: Arc<Mutex<HashMap<String, crate::entity::UserAccountEntity>>>,
+    pub account_store:
+        Arc<Mutex<HashMap<String, crate::entity::UserAccountEntity>>>,
 }
 
 impl MockUserRepository {
@@ -38,7 +39,10 @@ impl crate::repository::UserRepository for MockUserRepository {
         user_account_entity: &entity::UserAccountEntity,
     ) -> stardust::Result<entity::UserAccountEntity> {
         let mut account_store = self.account_store.lock().await;
-        account_store.insert(user_account_entity.uid.clone(), user_account_entity.clone());
+        account_store.insert(
+            user_account_entity.uid.clone(),
+            user_account_entity.clone(),
+        );
         Ok(user_account_entity.clone())
     }
 
@@ -85,7 +89,7 @@ impl crate::repository::UserRepository for MockUserRepository {
     ) -> stardust::Result<Vec<crate::entity::UserAccountEntity>> {
         let mut results = Vec::new();
         let account_store = self.account_store.lock().await;
-        for (_,v) in &*account_store {
+        for (_, v) in &*account_store {
             if v.user_id == user_id {
                 results.push(v.clone());
             }
@@ -100,10 +104,7 @@ impl crate::repository::UserRepository for MockUserRepository {
     ) -> stardust::Result<Option<entity::UserAggregate>> {
         if let Some(user) = self.find_user(_handle, _query).await? {
             let accounts = self.find_user_accounts(_handle, user.id).await?;
-            return Ok(Some(entity::UserAggregate {
-                user,
-                accounts,
-            }));
+            return Ok(Some(entity::UserAggregate { user, accounts }));
         }
         Ok(None)
     }

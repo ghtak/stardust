@@ -58,6 +58,12 @@ pub struct ApiKeyEntity {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ApiKeyWithSecret {
+    pub secret: String,
+    pub apikey: ApiKeyEntity,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ApiKeyUserAggregate {
     pub apikey_id: i64,
     pub user: UserEntity,

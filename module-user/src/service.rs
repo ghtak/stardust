@@ -1,11 +1,7 @@
-use stardust::With;
-
 use crate::{command, entity, query};
 
 #[async_trait::async_trait]
 pub trait UserService: Sync + Send {
-    async fn hello(&self) -> String;
-
     async fn signup(
         &self,
         command: &command::SignupCommand,
@@ -21,12 +17,14 @@ pub trait ApiKeyService: Sync + Send {
     fn create_apikey(
         &self,
         command: &command::CreateApiKeyCommand,
-    ) -> impl Future<Output = stardust::Result<With<String, entity::ApiKeyEntity>>> + Send;
+    ) -> impl Future<Output = stardust::Result<entity::ApiKeyWithSecret>> + Send;
 
     fn find_user(
         &self,
         query: &query::FindApiKeyUserQuery<'_>,
-    ) -> impl Future<Output = stardust::Result<Option<entity::ApiKeyUserAggregate>>> + Send;
+    ) -> impl Future<
+        Output = stardust::Result<Option<entity::ApiKeyUserAggregate>>,
+    > + Send;
 
     fn find_apikeys(
         &self,
@@ -41,8 +39,5 @@ pub trait ApiKeyService: Sync + Send {
 
 #[async_trait::async_trait]
 pub trait ApiKeyUsageTracker: Sync + Send {
-    async fn track_usage(
-        &self,
-        apikey_id: i64,
-    ) -> stardust::Result<()>;
+    async fn track_usage(&self, apikey_id: i64) -> stardust::Result<()>;
 }

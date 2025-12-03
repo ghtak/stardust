@@ -31,7 +31,12 @@ pub struct OAuth2AuthorizationEntity {
 }
 
 impl OAuth2AuthorizationEntity {
-    pub fn new(client_id: i64, principal_id: i64, scope: String, state: String) -> Self {
+    pub fn new(
+        client_id: i64,
+        principal_id: i64,
+        scope: String,
+        state: String,
+    ) -> Self {
         let now = chrono::Utc::now();
         Self {
             id: 0,
@@ -40,7 +45,7 @@ impl OAuth2AuthorizationEntity {
             scope: scope,
             state: state,
             grant_type: "authorization_code".to_owned(),
-            auth_code_value: stardust_common::utils::generate_uid(),
+            auth_code_value: stardust::utils::generate_uid(),
             auth_code_issued_at: now,
             auth_code_expires_at: now + chrono::Duration::minutes(10),
             access_token_value: "".to_owned(),
@@ -53,7 +58,11 @@ impl OAuth2AuthorizationEntity {
         }
     }
 
-    pub fn issue_token(&mut self, access_token: String, refresh_token_hash: String) {
+    pub fn issue_token(
+        &mut self,
+        access_token: String,
+        refresh_token_hash: String,
+    ) {
         let now = chrono::Utc::now();
         self.auth_code_expires_at = now;
         self.access_token_value = access_token;

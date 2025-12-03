@@ -13,7 +13,7 @@ impl crate::service::SampleService for SampleServiceImpl {
     async fn find_sample(
         &self,
         query: &query::FindSampleQuery,
-    ) -> stardust_common::Result<entity::HelloEntity> {
+    ) -> stardust::Result<entity::HelloEntity> {
         Ok(entity::HelloEntity {
             name: query.name.clone(),
         })

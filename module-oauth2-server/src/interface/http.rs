@@ -7,7 +7,6 @@ use axum::{
     routing::{delete, get, post},
 };
 use module_user::interface::extract::{AdminUser, AuthUser};
-use stardust_interface::http::ApiResponse;
 
 use crate::{
     command, entity,
@@ -18,20 +17,21 @@ use crate::{
 
 async fn create_client<T>(
     State(container): State<Arc<T>>,
-    AdminUser(_): AdminUser,
+    AdminUser(_user, _): AdminUser<stardust::Error>,
     axum::Json(req): axum::Json<dto::CreateOAuth2ClientRequest>,
-) -> Result<ApiResponse<dto::OAuth2ClientDto>, ApiResponse<()>>
+) -> stardust::Result<axum::Json<dto::OAuth2ClientDto>>
 where
     T: crate::Container,
 {
-    let entity = container.oauth2_client_service().create_client(&req.into()).await?;
-    Ok(ApiResponse::with(entity.into()))
+    let entity =
+        container.oauth2_client_service().create_client(&req.into()).await?;
+    Ok(axum::Json(entity.into()))
 }
 
 async fn get_clients<T>(
     State(ct): State<Arc<T>>,
-    AdminUser(_): AdminUser,
-) -> Result<ApiResponse<Vec<dto::OAuth2ClientDto>>, ApiResponse<()>>
+    AdminUser(_, _): AdminUser<stardust::Error>,
+) -> stardust::Result<axum::Json<Vec<dto::OAuth2ClientDto>>>
 where
     T: crate::Container,
 {
@@ -39,37 +39,40 @@ where
         .oauth2_client_service()
         .find_clients(&query::FindOAuth2ClientQuery { client_id: None })
         .await?;
-    Ok(ApiResponse::with(
-        clients.into_iter().map(|c| c.into()).collect(),
-    ))
+    Ok(axum::Json(clients.into_iter().map(|c| c.into()).collect()))
 }
 
 async fn delete_client<T>(
     State(ct): State<Arc<T>>,
-    AdminUser(_): AdminUser,
+    AdminUser(_, _): AdminUser<stardust::Error>,
     axum::extract::Path(id): axum::extract::Path<i64>,
-) -> ApiResponse<()>
+) -> stardust::Result<()>
 where
     T: crate::Container,
 {
-    let result =
-        ct.oauth2_client_service().delete_client(&command::DeleteOAuth2ClientCommand { id }).await;
+    let result = ct
+        .oauth2_client_service()
+        .delete_client(&command::DeleteOAuth2ClientCommand { id })
+        .await;
     match result {
-        Ok(_) => ApiResponse::ok(),
-        Err(e) => ApiResponse::from(e),
+        Ok(_) => Ok(()),
+        Err(e) => Err(e.into()),
     }
 }
 
 async fn oauth2_authorize<T>(
     State(ct): State<Arc<T>>,
     Query(req): Query<dto::OAuth2AuthorizeRequest>,
-    user: Option<AuthUser>,
-) -> Result<impl IntoResponse, ApiResponse<()>>
+    user: Option<AuthUser<stardust::Error>>,
+) -> stardust::Result<impl IntoResponse>
 where
     T: crate::Container,
 {
     let Some(user) = user else {
-        let _ = ct.oauth2_authorization_service().verify(&req.as_verify_command()).await?;
+        let _ = ct
+            .oauth2_authorization_service()
+            .verify(&req.as_verify_command())
+            .await?;
         let callback_url = format!("/oauth2/authorize?{}", req.as_params());
         let redirect_url = format!(
             "/oauth2/login.html?callback={}",
@@ -96,22 +99,23 @@ where
 async fn oauth2_token<T>(
     State(ct): State<Arc<T>>,
     Form(req): Form<dto::OAuth2TokenRequest>,
-) -> Result<ApiResponse<dto::OAuth2TokenResponse>, ApiResponse<()>>
+) -> stardust::Result<axum::Json<dto::OAuth2TokenResponse>>
 where
     T: crate::Container,
 {
-    let token = ct.oauth2_authorization_service().token(&req.as_command()).await?;
-    Ok(ApiResponse::with(token.into()))
+    let token =
+        ct.oauth2_authorization_service().token(&req.as_command()).await?;
+    Ok(axum::Json(token.into()))
 }
 
 async fn oauth2_me<T>(
     State(_): State<Arc<T>>,
-    extract::OAuth2User(user): extract::OAuth2User,
-) -> ApiResponse<entity::OAuthUserAggregate>
+    extract::OAuth2User(user, _): extract::OAuth2User<stardust::Error>,
+) -> stardust::Result<axum::Json<entity::OAuthUserAggregate>>
 where
     T: crate::Container,
 {
-    ApiResponse::with(user)
+    Ok(axum::Json(user))
 }
 
 async fn oauth2_testcallback<T>(
@@ -121,8 +125,11 @@ async fn oauth2_testcallback<T>(
 where
     T: crate::Container,
 {
-    let kvstring =
-        req.into_iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<_>>().join("&");
+    let kvstring = req
+        .into_iter()
+        .map(|(k, v)| format!("{}={}", k, v))
+        .collect::<Vec<_>>()
+        .join("&");
     kvstring
 }
 

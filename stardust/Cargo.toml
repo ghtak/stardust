@@ -24,6 +24,7 @@ sqlx = { version = "0.8.6", features = [
     "runtime-tokio",
     "sqlite",
     "tls-rustls",
+    "chrono",
 ] }
 futures-core = "0.3.31"
 axum = { version = "0.8.7", features = ["multipart"] }
@@ -34,3 +35,9 @@ tower-http = { version = "0.6.7", features = ["full", "tracing"] }
 chrono = { version = "0.4.42", features = ["serde"] }
 serde_json = "1.0.145"
 bytes = "1.11.0"
+tonic = "0.14.2"
+tonic-prost = "0.14.2"
+tonic-reflection = "0.14.2"
+
+[build-dependencies]
+tonic-prost-build = "0.14.2"
