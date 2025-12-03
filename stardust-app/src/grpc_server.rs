@@ -33,6 +33,7 @@ impl Greeter for MyGreeter {
 
 #[tokio::main]
 async fn main() -> stardust::Result<()> {
+    // cargo run --bin grpc-server
     let config = stardust::config::Config::test_config();
     let addr =
         format!("{}:{}", config.server.host.as_str(), config.server.port)

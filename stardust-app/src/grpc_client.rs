@@ -7,6 +7,7 @@ use hello::greeter_client::GreeterClient;
 
 #[tokio::main]
 async fn main() -> stardust::Result<()> {
+    // cargo run --bin grpc-client
     let config = stardust::config::Config::test_config();
     let addr = format!("http://127.0.0.1:{}", config.server.port);
     let mut client = GreeterClient::connect(addr)
